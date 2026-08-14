@@ -1,0 +1,6 @@
+{
+  "name": "Virtual Simulation Platform",
+  "description": "A 2D virtual simulation platform for IoT devices, protocols, and control systems.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
