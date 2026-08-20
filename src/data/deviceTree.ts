@@ -22,7 +22,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_AirQuality_Thumbnail.png"
                     },
                     {
                         "orderNum": 2,
@@ -31,7 +32,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_Baroceptor_Thumbnail.png"
                     },
                     {
                         "orderNum": 3,
@@ -40,7 +42,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_CO2_Thumbnail.png"
                     },
                     {
                         "orderNum": 4,
@@ -49,7 +52,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_Humiture_Thumbnail.png"
                     },
                     {
                         "orderNum": 5,
@@ -58,7 +62,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/NewLab_Temperature_Illumination_Thumbnail.png"
                     },
                     {
                         "orderNum": 5,
@@ -67,7 +72,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_AirPressure_Thumbnail.png"
                     },
                     {
                         "orderNum": 6,
@@ -76,7 +82,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS232_O2_Thumbnail.png"
                     },
                     {
                         "orderNum": 7,
@@ -85,7 +92,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_PM25_Thumbnail.png"
                     },
                     {
                         "orderNum": 8,
@@ -94,7 +102,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_SoilHumiture_Thumbnail.png"
                     },
                     {
                         "orderNum": 9,
@@ -103,7 +112,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_Level_Thumbnail.png"
                     },
                     {
                         "orderNum": 10,
@@ -112,7 +122,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_WaterTemperature_Thumbnail.png"
                     },
                     {
                         "orderNum": 11,
@@ -121,7 +132,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/Wind_Direction_Sensor_Thumbnail.png"
                     },
                     {
                         "orderNum": 12,
@@ -130,7 +142,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_WindSpeed_Thumbnail.png"
                     },
                     {
                         "orderNum": 13,
@@ -139,7 +152,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/OnOff_Body_Thumbnail.png"
                     },
                     {
                         "orderNum": 14,
@@ -148,7 +162,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/OnOff_Fire_Thumbnail.png"
                     },
                     {
                         "orderNum": 15,
@@ -157,7 +172,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/OnOff_Infrared_Less_Thumbnail.png"
                     },
                     {
                         "orderNum": 16,
@@ -166,7 +182,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/OnOff_Infrared_Main_Thumbnail.png"
                     },
                     {
                         "orderNum": 17,
@@ -175,7 +192,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/OnOff_Microwave_Thumbnail.png"
                     },
                     {
                         "orderNum": 18,
@@ -184,7 +202,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/OnOff_Smoke_Thumbnail.png"
                     },
                     {
                         "orderNum": 18,
@@ -193,7 +212,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/OnOff_Button_Thumbnail.png"
                     },
                     {
                         "orderNum": 19,
@@ -202,7 +222,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_WaterTemperature_Thumbnail.png"
                     },
                     {
                         "orderNum": 19,
@@ -211,7 +232,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_CO2_Thumbnail.png"
                     },
                     {
                         "orderNum": 19,
@@ -220,7 +242,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_PM25_Thumbnail.png"
                     },
                     {
                         "orderNum": 19,
@@ -229,7 +252,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_GAS_Thumbnail.png"
                     },
                     {
                         "orderNum": 19,
@@ -238,7 +262,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_AirflowMeter_Thumbnail.png"
                     },
                     {
                         "orderNum": 19,
@@ -247,7 +272,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_Pressure_Thumbnail.png"
                     },
                     {
                         "orderNum": 19,
@@ -256,7 +282,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_WaterLeakage_Thumbnail.png"
                     },
                     {
                         "orderNum": 19,
@@ -265,7 +292,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_Ceiling_Infrared_Thumbnail.png"
                     },
                     {
                         "orderNum": 20,
@@ -274,7 +302,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_AirQuality_Thumbnail.png"
                     },
                     {
                         "orderNum": 20,
@@ -283,7 +312,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_Humiture_Thumbnail.png"
                     },
                     {
                         "orderNum": 20,
@@ -292,7 +322,8 @@ export const deviceTreeData = [
                         "icon": "/generator/18960921912/2025/12/13/751392228929605.png",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_Humiture_Thumbnail.png"
                     },
                     {
                         "orderNum": 21,
@@ -301,7 +332,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_Illumination_Thumbnail.png"
                     },
                     {
                         "orderNum": 22,
@@ -310,7 +342,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_SoilHumiture_Thumbnail.png"
                     },
                     {
                         "orderNum": 23,
@@ -319,7 +352,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_IlluminationNoise_Thumbnail.png"
                     },
                     {
                         "orderNum": 23,
@@ -328,7 +362,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_DOY_Thumbnail.png"
                     },
                     {
                         "orderNum": 23,
@@ -337,7 +372,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_GPS_Thumbnail.png"
                     },
                     {
                         "orderNum": 24,
@@ -346,7 +382,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_Level_Thumbnail.png"
                     },
                     {
                         "orderNum": 25,
@@ -355,7 +392,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_Photosynthetically_Active_Radiation_Thumbnail.png"
                     },
                     {
                         "orderNum": 26,
@@ -364,7 +402,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_SoilNPK_Thumbnail.png"
                     },
                     {
                         "orderNum": 26,
@@ -373,7 +412,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_Noise_Thumbnail.png"
                     },
                     {
                         "orderNum": 26,
@@ -382,7 +422,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_WindSpeed_Thumbnail.png"
                     },
                     {
                         "orderNum": 26,
@@ -391,7 +432,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_O3_Thumbnail.png"
                     },
                     {
                         "orderNum": 26,
@@ -400,7 +442,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_SO2_Thumbnail.png"
                     },
                     {
                         "orderNum": 26,
@@ -409,7 +452,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_NO2_Thumbnail.png"
                     },
                     {
                         "orderNum": 26,
@@ -418,7 +462,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_Shock_Thumbnail.png"
                     },
                     {
                         "orderNum": 27,
@@ -427,7 +472,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS232_O2_Thumbnail.png"
                     },
                     {
                         "orderNum": 27,
@@ -436,7 +482,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_CO_Thumbnail.png"
                     },
                     {
                         "orderNum": 27,
@@ -445,7 +492,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_AirQuality_Thumbnail.png"
                     },
                     {
                         "orderNum": 27,
@@ -454,7 +502,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_NO2_Thumbnail.png"
                     },
                     {
                         "orderNum": 27,
@@ -463,7 +512,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_SO2_Thumbnail.png"
                     },
                     {
                         "orderNum": 27,
@@ -472,7 +522,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_O3_Thumbnail.png"
                     },
                     {
                         "orderNum": 27,
@@ -481,7 +532,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_AirQuality_Thumbnail.png"
                     },
                     {
                         "orderNum": 27,
@@ -490,7 +542,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_CO_Thumbnail.png"
                     },
                     {
                         "orderNum": 27,
@@ -499,7 +552,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_H2S_Thumbnail.png"
                     },
                     {
                         "orderNum": 28,
@@ -508,7 +562,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_Humiture_Thumbnail.png"
                     },
                     {
                         "orderNum": 28,
@@ -517,7 +572,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_Ultrasonic_Thumbnail.png"
                     },
                     {
                         "orderNum": 29,
@@ -526,7 +582,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_ElecFlowmeter_Thumbnail.png"
                     },
                     {
                         "orderNum": 29,
@@ -535,7 +592,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_ElecConductivity_Thumbnail.png"
                     },
                     {
                         "orderNum": 29,
@@ -544,7 +602,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_AirPressure_Thumbnail.png"
                     },
                     {
                         "orderNum": 29,
@@ -553,7 +612,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_FlowMeter_Thumbnail.png"
                     },
                     {
                         "orderNum": 29,
@@ -562,7 +622,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_Ammonia_Thumbnail.png"
                     },
                     {
                         "orderNum": 29,
@@ -571,7 +632,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/OnOff_DoorMagneticSwitch_Thumbnail.png"
                     },
                     {
                         "orderNum": 30,
@@ -580,7 +642,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_PHSol_Thumbnail.png"
                     },
                     {
                         "orderNum": 30,
@@ -589,7 +652,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/zigBee_OnOffKnobSwitch_Thumbnail.png"
                     },
                     {
                         "orderNum": 30,
@@ -598,7 +662,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_SensoreTemp_Thumbnail.png"
                     },
                     {
                         "orderNum": 31,
@@ -607,7 +672,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_Turbidity_Thumbnail.png"
                     },
                     {
                         "orderNum": 31,
@@ -616,7 +682,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_IlluminationNoise_Thumbnail.png"
                     },
                     {
                         "orderNum": 32,
@@ -625,7 +692,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/Radar_Level_Thumbnail.png"
                     },
                     {
                         "orderNum": 33,
@@ -634,7 +702,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS232_BloodPressure_Thumbnail.png"
                     },
                     {
                         "orderNum": 34,
@@ -643,7 +712,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS232_BloodOxygen_Thumbnail.png"
                     },
                     {
                         "orderNum": 35,
@@ -652,7 +722,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS232_HeartSounds_Thumbnail.png"
                     },
                     {
                         "orderNum": 36,
@@ -661,7 +732,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS232_Electrocardiogram_Thumbnail.png"
                     },
                     {
                         "orderNum": 37,
@@ -670,7 +742,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS232_BodyTemperature_Thumbnail.png"
                     },
                     {
                         "orderNum": 38,
@@ -679,7 +752,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS232_Breathing_Thumbnail.png"
                     },
                     {
                         "orderNum": 39,
@@ -688,7 +762,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS232_PulseRate_Thumbnail.png"
                     },
                     {
                         "orderNum": 40,
@@ -697,7 +772,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_AmmoniaTransmitter_Thumbnail.png"
                     },
                     {
                         "orderNum": 41,
@@ -706,7 +782,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_DOYTransmitter_Thumbnail.png"
                     },
                     {
                         "orderNum": 42,
@@ -715,7 +792,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_PHSolTransmitter_Thumbnail.png"
                     },
                     {
                         "orderNum": 43,
@@ -724,7 +802,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_SmallWaterMeter_Thumbnail.png"
                     },
                     {
                         "orderNum": 44,
@@ -733,7 +812,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wired",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_LargeWaterMeter_Thumbnail.png"
                     }
                 ]
             },
@@ -752,7 +832,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wireless",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/ZigBee_Humiture_AIoT_Thumbnail.png"
                     },
                     {
                         "orderNum": 1,
@@ -761,7 +842,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wireless",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/OnOff_LightCurtain_Thumbnail.png"
                     },
                     {
                         "orderNum": 2,
@@ -770,7 +852,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wireless",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/ZigBee_Illumination_AIoT_Thumbnail.png"
                     },
                     {
                         "orderNum": 3,
@@ -779,7 +862,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wireless",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/ZigBee_Body_AIoT_Thumbnail.png"
                     },
                     {
                         "orderNum": 4,
@@ -788,7 +872,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wireless",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/ZigBee_Smoke_AIoT_Thumbnail.png"
                     },
                     {
                         "orderNum": 5,
@@ -797,7 +882,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wireless",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/ZigBee_Immersion_AIoT_Thumbnail.png"
                     },
                     {
                         "orderNum": 6,
@@ -806,7 +892,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wireless",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/ZigBee_Door_AIoT_Thumbnail.png"
                     },
                     {
                         "orderNum": 7,
@@ -815,7 +902,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wireless",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/ZigBee_AirQuality_Thumbnail.png"
                     },
                     {
                         "orderNum": 8,
@@ -824,7 +912,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wireless",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/ZigBee_Body_Thumbnail.png"
                     },
                     {
                         "orderNum": 9,
@@ -833,7 +922,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wireless",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/ZigBee_CombustibleGas_Thumbnail.png"
                     },
                     {
                         "orderNum": 10,
@@ -842,7 +932,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wireless",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/ZigBee_Fire_Thumbnail.png"
                     },
                     {
                         "orderNum": 11,
@@ -851,7 +942,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wireless",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/ZigBee_Humiture_Thumbnail.png"
                     },
                     {
                         "orderNum": 12,
@@ -860,7 +952,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wireless",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/ZigBee_Illumination_Thumbnail.png"
                     },
                     {
                         "orderNum": 13,
@@ -869,7 +962,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wireless",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/ZigBee_Gasleak_AIoT_Thumbnail.png"
                     },
                     {
                         "orderNum": 13,
@@ -878,7 +972,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wireless",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/zigBee_OnOffScenarioSwitch_Thumbnail.png"
                     },
                     {
                         "orderNum": 14,
@@ -887,7 +982,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wireless",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/ZigBee_Light_AIoT_Thumbnail.png"
                     },
                     {
                         "orderNum": 15,
@@ -896,7 +992,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wireless",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/ZigBee_SoundLightAlarm_AIoT_Thumbnail.png"
                     },
                     {
                         "orderNum": 16,
@@ -905,7 +1002,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wireless",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/ZigBee_HumanMovement_AIoT_Thumbnail.png"
                     },
                     {
                         "orderNum": 17,
@@ -914,7 +1012,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Wireless",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/ZigBee_RBGWLampBulb_AIoT_Thumbnail.png"
                     }
                 ]
             },
@@ -933,7 +1032,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Actuator",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/OnOff_LimitSwitch_Thumbnail.png"
                     },
                     {
                         "orderNum": 1,
@@ -942,7 +1042,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Actuator",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/OnOff_TravelSwitch_Thumbnail.png"
                     },
                     {
                         "orderNum": 18,
@@ -951,7 +1052,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Actuator",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/OnOff_Relay_Thumbnail.png"
                     },
                     {
                         "orderNum": 18,
@@ -960,7 +1062,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Actuator",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/ZigBee_DoubleRelay_Thumbnail.png"
                     },
                     {
                         "orderNum": 18,
@@ -969,7 +1072,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Actuator",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/ZigBee_SigleRelay_Thumbnail.png"
                     }
                 ]
             }
@@ -998,7 +1102,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Gatewary",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/NLEGateway_Thumbnail.png"
                     },
                     {
                         "orderNum": 1,
@@ -1007,7 +1112,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Gatewary",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/Nlenewlandgateway_Thumbnail.png"
                     },
                     {
                         "orderNum": 2,
@@ -1016,7 +1122,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Gatewary",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/Router_Thumbnail.png"
                     },
                     {
                         "orderNum": 3,
@@ -1025,7 +1132,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Gatewary",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/SerialServer_Thumbnail.png"
                     },
                     {
                         "orderNum": 4,
@@ -1034,7 +1142,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Gatewary",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/NLESerialServer_Thumbnail.png"
                     },
                     {
                         "orderNum": 5,
@@ -1043,7 +1152,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Gatewary",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/SmartSecurityExchanger_Thumbnail.png"
                     },
                     {
                         "orderNum": 6,
@@ -1052,7 +1162,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Gatewary",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/SmartAgricultureGateway_Thumbnail.png"
                     },
                     {
                         "orderNum": 7,
@@ -1061,7 +1172,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Gatewary",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/SmartHomeGateway_Thumbnail.png"
                     },
                     {
                         "orderNum": 7,
@@ -1070,7 +1182,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Gatewary",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/Other_5G_Camera_Thumbnail.png"
                     },
                     {
                         "orderNum": 7,
@@ -1079,7 +1192,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Gatewary",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/PLC_S7_200_Thumbnail.png"
                     },
                     {
                         "orderNum": 7,
@@ -1088,7 +1202,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Gatewary",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/PLC_S7_1200_Thumbnail.png"
                     },
                     {
                         "orderNum": 7,
@@ -1097,7 +1212,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Gatewary",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/SmartSecurityGateway_Thumbnail.png"
                     },
                     {
                         "orderNum": 8,
@@ -1106,7 +1222,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Gatewary",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/Terminal_Cloud_Thumbnail.png"
                     },
                     {
                         "orderNum": 8,
@@ -1115,7 +1232,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Gatewary",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/NewLabCommon_Thumbnail.png"
                     },
                     {
                         "orderNum": 9,
@@ -1124,7 +1242,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Gatewary",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/TB_nb200_Thumbnail.png"
                     },
                     {
                         "orderNum": 9,
@@ -1133,7 +1252,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Gatewary",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/WaterAllInOneMachine_Thumbnail.png"
                     },
                     {
                         "orderNum": 10,
@@ -1142,7 +1262,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Gatewary",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/YR_410s_Thumbnail.png"
                     },
                     {
                         "orderNum": 11,
@@ -1151,7 +1272,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Gatewary",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/Switch_LH_IO404_RS485_Thumbnail.png"
                     },
                     {
                         "orderNum": 12,
@@ -1160,7 +1282,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Gatewary",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/UsrG771Gateway_Thumbnail.png"
                     },
                     {
                         "orderNum": 19,
@@ -1169,7 +1292,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Gatewary",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/TB_nb200_Thumbnail.png"
                     },
                     {
                         "orderNum": 30,
@@ -1178,7 +1302,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "Gatewary",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/NewLab_M3_Thumbnail.png"
                     }
                 ]
             },
@@ -1197,7 +1322,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "IO",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/Switch_LH_IO404_RS485_Thumbnail.png"
                     },
                     {
                         "orderNum": 2,
@@ -1206,7 +1332,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "IO",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/Switch_LH_IO404_RS485_Thumbnail.png"
                     },
                     {
                         "orderNum": 3,
@@ -1215,7 +1342,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "IO",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/Zigbee_Smart_Node_Box_Thumbnail.png"
                     },
                     {
                         "orderNum": 4,
@@ -1224,7 +1352,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "IO",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/SmartAgricultureGateway_Thumbnail.png"
                     },
                     {
                         "orderNum": 5,
@@ -1233,7 +1362,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "IO",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/ZigBee_Coordinator_Thumbnail.png"
                     },
                     {
                         "orderNum": 6,
@@ -1242,7 +1372,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "IO",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/ZigBee_FourInput_Thumbnail.png"
                     },
                     {
                         "orderNum": 7,
@@ -1251,7 +1382,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "IO",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/RS485_USB_Thumbnail.png"
                     },
                     {
                         "orderNum": 8,
@@ -1260,7 +1392,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "IO",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/Zigbee_Smart_Node_Box_Thumbnail.png"
                     },
                     {
                         "orderNum": 9,
@@ -1269,7 +1402,8 @@ export const deviceTreeData = [
                         "icon": "",
                         "parentId": "IO",
                         "type": 1,
-                        "children": []
+                        "children": [],
+                        "image": "/device/New_ZigBee_Coordinator_Thumbnail.png"
                     }
                 ]
             }

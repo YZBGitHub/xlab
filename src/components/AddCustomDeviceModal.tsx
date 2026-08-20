@@ -1,12 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, UploadCloud, Check, Plus, Edit2, Trash2, Shield, Settings, Info, Zap } from 'lucide-react';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
+  initialData?: any;
+  onSave?: (savedData: any) => void;
 }
 
-export default function AddCustomDeviceModal({ isOpen, onClose }: Props) {
+export default function AddCustomDeviceModal({ isOpen, onClose, initialData, onSave }: Props) {
+  const isEditMode = !!initialData;
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     name: '',
@@ -32,8 +35,58 @@ export default function AddCustomDeviceModal({ isOpen, onClose }: Props) {
     modbusAttrs: [
       { name: '温度', unit: '℃', range: '0-100', funcCode: '0x03', startAddr: '0004', dataLen: '1', formula: 'R0=val/10' }
     ],
-    analogConfig: { type: '电压', range: '0-24', unit: 'V', min: '0', max: '10', precision: '0' }
+    analogConfig: { type: '电压', range: '0-24', unit: 'V', min: '0', max: '10', precision: '0' },
+    
+    // Publish Option
+    publishToSimulation: false
   });
+
+  useEffect(() => {
+    if (isOpen) {
+      setStep(1);
+      if (initialData) {
+        setFormData({
+          name: initialData.name || '',
+          image: initialData.image || null,
+          type: (initialData.type === '网关' || initialData.type === '传感器') ? initialData.type : '执行器',
+          gatewayType: initialData.gatewayType || '云平台网关',
+          powerType: initialData.powerType || (initialData.power?.includes('AC') ? '交流' : '直流'),
+          acVoltage: initialData.acVoltage || '220V',
+          customAcVal: initialData.customAcVal || '',
+          dcVoltage: initialData.dcVoltage || '12V',
+          customDcVal: initialData.customDcVal || '',
+          onImage: initialData.onImage || null,
+          offImage: initialData.offImage || null,
+          protocol: initialData.protocol === 'Modbus RTU' ? 'ModbusRTU' : (initialData.protocol || 'ModbusRTU'),
+          modbusAttrs: initialData.modbusAttrs || [
+            { name: '温度', unit: '℃', range: '0-100', funcCode: '0x03', startAddr: '0004', dataLen: '1', formula: 'R0=val/10' }
+          ],
+          analogConfig: initialData.analogConfig || { type: '电压', range: '0-24', unit: 'V', min: '0', max: '10', precision: '0' },
+          publishToSimulation: initialData.publishToSimulation || false
+        });
+      } else {
+        setFormData({
+          name: '',
+          image: null,
+          type: '执行器',
+          gatewayType: '云平台网关',
+          powerType: '直流',
+          acVoltage: '220V',
+          customAcVal: '',
+          dcVoltage: '12V',
+          customDcVal: '',
+          onImage: null,
+          offImage: null,
+          protocol: 'ModbusRTU',
+          modbusAttrs: [
+            { name: '温度', unit: '℃', range: '0-100', funcCode: '0x03', startAddr: '0004', dataLen: '1', formula: 'R0=val/10' }
+          ],
+          analogConfig: { type: '电压', range: '0-24', unit: 'V', min: '0', max: '10', precision: '0' },
+          publishToSimulation: false
+        });
+      }
+    }
+  }, [isOpen, initialData]);
 
   const totalSteps = formData.type === '执行器' ? 5 : (formData.type === '传感器' ? 4 : 3);
 
@@ -42,7 +95,13 @@ export default function AddCustomDeviceModal({ isOpen, onClose }: Props) {
   const handleNext = () => {
     if (step < totalSteps) setStep(step + 1);
     else {
-      alert('设备生成成功！');
+      if (isEditMode) {
+        if (onSave) onSave(formData);
+        alert(`自定义设备 "${formData.name}" 修改已成功保存！`);
+      } else {
+        if (onSave) onSave(formData);
+        alert(formData.publishToSimulation ? '设备生成成功，已同步发布至仿真设备大厅！' : '设备生成成功，已保存至您的自定义设备！');
+      }
       onClose();
       setTimeout(() => setStep(1), 300);
     }
@@ -57,7 +116,9 @@ export default function AddCustomDeviceModal({ isOpen, onClose }: Props) {
       <div className="bg-white rounded-xl shadow-2xl w-[900px] h-[85vh] max-h-[850px] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 shrink-0">
-          <h3 className="font-bold text-gray-800 text-lg">新增自定义设备</h3>
+          <h3 className="font-bold text-gray-800 text-lg">
+            {isEditMode ? '编辑自定义设备' : '新增自定义设备'}
+          </h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
             <X size={20} />
           </button>
@@ -102,7 +163,7 @@ export default function AddCustomDeviceModal({ isOpen, onClose }: Props) {
             {step === 3 && isActuator && <Step3ActuatorPorts data={formData} />}
             {step === 4 && isActuator && <Step4ActuatorStatus data={formData} update={(d: any) => setFormData({...formData, ...d})} />}
             {step === 3 && isSensor && <Step3SensorProtocol data={formData} update={(d: any) => setFormData({...formData, ...d})} />}
-            {step === totalSteps && <StepConfirm data={formData} />}
+            {step === totalSteps && <StepConfirm data={formData} update={(d: any) => setFormData({...formData, ...d})} />}
           </div>
         </div>
 
@@ -126,7 +187,7 @@ export default function AddCustomDeviceModal({ isOpen, onClose }: Props) {
             onClick={handleNext}
             className="px-5 py-2 bg-blue-500 text-white rounded-md text-sm font-medium hover:bg-blue-600 shadow-sm transition-colors"
           >
-            {step === totalSteps ? '确认并生成' : '下一步'}
+            {step === totalSteps ? (isEditMode ? '保存修改' : '确认并生成') : '下一步'}
           </button>
         </div>
 
@@ -700,7 +761,7 @@ function Step3SensorProtocol({ data, update }: any) {
   );
 }
 
-function StepConfirm({ data }: { data: any }) {
+function StepConfirm({ data, update }: { data: any; update: (fields: any) => void }) {
   const isActuator = data.type === '执行器';
   const isSensor = data.type === '传感器';
   const isGateway = data.type === '网关';
@@ -852,6 +913,32 @@ function StepConfirm({ data }: { data: any }) {
             </div>
           </div>
         )}
+
+        {/* Publish Option */}
+        <div className="p-5 bg-gradient-to-r from-blue-50/70 to-indigo-50/40">
+          <div className="flex items-start gap-3.5">
+            <div className="pt-0.5">
+              <input
+                type="checkbox"
+                id="publishToSimulationCheckbox"
+                checked={data.publishToSimulation || false}
+                onChange={(e) => update({ publishToSimulation: e.target.checked })}
+                className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-gray-300 cursor-pointer"
+              />
+            </div>
+            <label htmlFor="publishToSimulationCheckbox" className="cursor-pointer select-none">
+              <div className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                是否发布到仿真设备
+                {data.publishToSimulation && (
+                  <span className="text-[10px] bg-blue-100 text-blue-700 font-semibold px-2 py-0.5 rounded border border-blue-200">公开共享</span>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                发布后可以被其他用户查看和复制，共同构建开源设备库生态。
+              </p>
+            </label>
+          </div>
+        </div>
       </div>
     </div>
   );
