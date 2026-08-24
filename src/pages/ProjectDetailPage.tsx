@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useParams, Link } from 'react-router-dom';
 import { 
-  ArrowLeft, Copy, LayoutGrid, Play, Square, Eye, Clock, User, 
-  Layers, Check, X, Shield, Cpu, Activity, Zap, RefreshCw, 
-  Maximize, Minimize, Plus, Box, Info, Sparkles, Terminal, ChevronRight
+  Copy, Play, Square, Eye, Clock, User, 
+  X, Cpu
 } from 'lucide-react';
 import { getDeviceImageUrl } from '../utils/deviceImages';
 
@@ -114,7 +113,6 @@ const getProjectData = (id: number) => {
 
 export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const projectId = Number(id) || 1;
   const project = useMemo(() => getProjectData(projectId), [projectId]);
 
@@ -135,8 +133,6 @@ export default function ProjectDetailPage() {
     pir: '有人移动',
     hum: '25.2 ℃'
   });
-  const [logs, setLogs] = useState<string[]>([]);
-  const logEndRef = useRef<HTMLDivElement>(null);
 
   // Copy Project Modal
   const [isCopyProjectModalOpen, setIsCopyProjectModalOpen] = useState(false);
@@ -161,36 +157,20 @@ export default function ProjectDetailPage() {
           temp: `${(24 + Math.random() * 1.5).toFixed(1)} ℃`,
           hum: `${(24.5 + Math.random() * 1.2).toFixed(1)} ℃`
         }));
-
-        // Append Modbus frame simulation log
-        const timeStr = new Date().toLocaleTimeString();
-        const randAddr = ['01', '02', '03'][Math.floor(Math.random() * 3)];
-        const randHex = Array.from({ length: 4 }, () => Math.floor(Math.random() * 256).toString(16).padStart(2, '0').toUpperCase()).join(' ');
-        const newLog = `[${timeStr}] [TX] ${randAddr} 03 00 00 00 02 | [RX] ${randAddr} 03 04 ${randHex} (CRC OK)`;
-        
-        setLogs(prev => [...prev.slice(-30), newLog]);
       }, 1500);
     }
     return () => clearInterval(interval);
   }, [isRunning]);
-
-  useEffect(() => {
-    if (logEndRef.current) {
-      logEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [logs]);
 
   const toggleActuator = (key: string) => {
     if (!isRunning) {
       alert('请先点击右上角【开启实验】按钮启动仿真运行！');
       return;
     }
-    setActuators(prev => {
-      const nextState = !prev[key];
-      const timeStr = new Date().toLocaleTimeString();
-      setLogs(l => [...l, `[${timeStr}] [CMD] 执行器 [${key}] 状态切换 -> ${nextState ? '开启' : '关闭'}`]);
-      return { ...prev, [key]: nextState };
-    });
+    setActuators(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
   };
 
   const handleOpenCopyProject = () => {
@@ -228,13 +208,6 @@ export default function ProjectDetailPage() {
       {/* Header Bar */}
       <header className="bg-white shadow-xs border-b border-gray-200 sticky top-0 z-30 flex items-center justify-between px-6 py-3">
         <div className="flex items-center gap-4">
-          <button 
-            onClick={() => navigate('/')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-700 text-sm font-medium border border-gray-200 transition-colors"
-          >
-            <ArrowLeft size={16} /> 返回仿真中心
-          </button>
-          <div className="h-4 w-px bg-gray-200"></div>
           <Link to="/" className="flex items-center">
             <img src="/logo.png" alt="XLab" className="h-8 object-contain" />
           </Link>
@@ -379,7 +352,7 @@ export default function ProjectDetailPage() {
               <div className="flex items-center gap-3">
                 <div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
                 <h3 className="font-bold text-gray-800 text-base flex items-center gap-2">
-                  2D 仿真拓扑与实验画布
+                  仿真工程
                 </h3>
                 <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium flex items-center gap-1.5 border ${
                   isRunning 
@@ -555,31 +528,6 @@ export default function ProjectDetailPage() {
                     </div>
                   );
                 })}
-              </div>
-
-              {/* Bottom Real-time Telemetry & Protocol Log Bar */}
-              <div className="mt-auto bg-slate-950/90 border-t border-slate-800 p-3 z-20 flex flex-col gap-1 text-xs">
-                <div className="flex items-center justify-between text-slate-400 font-mono text-[11px] pb-1 border-b border-slate-800/60">
-                  <span className="flex items-center gap-1.5 text-cyan-400">
-                    <Terminal size={14} /> 实时仿真通信总线报文监视器
-                  </span>
-                  <span>速率: 9600 bps · 校验: None · 状态: {isRunning ? '活跃传输' : '空闲'}</span>
-                </div>
-
-                <div className="h-16 overflow-y-auto font-mono text-[11px] space-y-1 text-slate-300 custom-scrollbar pt-1">
-                  {logs.length === 0 ? (
-                    <div className="text-slate-500 text-[11px]">
-                      点击上方【开启实验】即可查看 Modbus/LoRa 数据流与设备实时联动交互。
-                    </div>
-                  ) : (
-                    logs.map((log, index) => (
-                      <div key={index} className="leading-tight text-emerald-400/90">
-                        {log}
-                      </div>
-                    ))
-                  )}
-                  <div ref={logEndRef} />
-                </div>
               </div>
 
             </div>

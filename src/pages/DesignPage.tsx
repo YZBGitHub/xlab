@@ -45,6 +45,48 @@ const DeviceImage = ({ deviceId, customImage, alt, className }: { deviceId?: str
   );
 };
 
+const inferProtocol = (node: any, path: string = ''): string => {
+  if (node.protocol) return node.protocol;
+  const text = `${node.name || ''} ${node.id || ''} ${path || ''} ${node.categoryPath || ''}`.toLowerCase();
+  if (text.includes("modbus") || text.includes("485") || text.includes("rs485") || text.includes("rs-485") || text.includes("rtu") || text.includes("tcp")) return "Modbus RTU";
+  if (text.includes("zigbee")) return "Zigbee";
+  if (text.includes("lora")) return "LoRa";
+  if (text.includes("蓝牙") || text.includes("bluetooth") || text.includes("ble")) return "蓝牙";
+  if (text.includes("mqtt")) return "MQTT";
+  if (text.includes("模拟") || text.includes("analog") || text.includes("0-5v") || text.includes("4-20ma") || text.includes("voltage") || text.includes("barometric") || text.includes("soilhumidity") || text.includes("waterlevel")) return "模拟量";
+  if (text.includes("rs232") || text.includes("232")) return "RS232";
+  if (text.includes("onoff") || text.includes("switch") || text.includes("开关") || text.includes("button") || text.includes("smoke") || text.includes("fire") || text.includes("body")) return "开关量";
+  return "标准协议";
+};
+
+const ProtocolBadge = ({ protocol }: { protocol: string }) => {
+  let colorStyle = "bg-gray-100 text-gray-600 border-gray-200";
+  const p = (protocol || '').toLowerCase();
+  if (p.includes('modbus') || p.includes('485')) {
+    colorStyle = "bg-emerald-50 text-emerald-700 border-emerald-200/80";
+  } else if (p.includes('模拟') || p.includes('analog')) {
+    colorStyle = "bg-amber-50 text-amber-700 border-amber-200/80";
+  } else if (p.includes('zigbee')) {
+    colorStyle = "bg-purple-50 text-purple-700 border-purple-200/80";
+  } else if (p.includes('lora')) {
+    colorStyle = "bg-indigo-50 text-indigo-700 border-indigo-200/80";
+  } else if (p.includes('mqtt')) {
+    colorStyle = "bg-cyan-50 text-cyan-700 border-cyan-200/80";
+  } else if (p.includes('蓝牙') || p.includes('bluetooth')) {
+    colorStyle = "bg-blue-50 text-blue-700 border-blue-200/80";
+  } else if (p.includes('开关') || p.includes('onoff')) {
+    colorStyle = "bg-teal-50 text-teal-700 border-teal-200/80";
+  } else if (p.includes('232')) {
+    colorStyle = "bg-orange-50 text-orange-700 border-orange-200/80";
+  }
+
+  return (
+    <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium border shrink-0 inline-flex items-center leading-none ${colorStyle}`}>
+      {protocol}
+    </span>
+  );
+};
+
 const getAllLeafNodes = (nodes: any[], currentPath: string = ''): any[] => {
   let leaves: any[] = [];
   nodes.forEach(node => {
@@ -56,6 +98,7 @@ const getAllLeafNodes = (nodes: any[], currentPath: string = ''): any[] => {
       leaves.push({
         ...node,
         categoryPath: currentPath || '系统设备',
+        protocol: inferProtocol(node, currentPath),
       });
     }
     if (node.children && node.children.length > 0) {
@@ -143,7 +186,10 @@ export default function DesignPage() {
   // Search results
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return [];
-    return allDevices.filter(d => d.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    return allDevices.filter(d => 
+      d.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      (d.protocol && d.protocol.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
   }, [allDevices, searchQuery]);
 
   // System category tree (exclude custom devices from system tab)
@@ -215,12 +261,12 @@ export default function DesignPage() {
   };
 
   const mockCustomDevices = [
-    { id: 'c1', name: '自定义电机 (V2)', type: '执行器', date: '2023-10-24', image: '/device/RS485_WaterPump_Thumbnail.png' },
-    { id: 'c2', name: '高精度测试仪', type: '仪器设备', date: '2023-11-05', image: '/device/RS485_Humiture_Thumbnail.png' },
-    { id: 'c3', name: '定制控制面板', type: '控制终端', date: '2024-01-12', image: '/device/Other_XC40_DoorControl_Thumbnail.png' },
-    { id: 'c4', name: '复合传感器模块A', type: '传感器', date: '2024-02-18', image: '/device/NewLabCommon_Thumbnail.png' },
-    { id: 'c5', name: '特殊网关协议版', type: '网关', date: '2024-03-01', image: '/device/UsrG771Gateway_Thumbnail.png' },
-    { id: 'c6', name: '压力监测单元', type: '传感器', date: '2024-04-10', image: '/device/RS485_Pressure_Thumbnail.png' },
+    { id: 'c1', name: '自定义电机 (V2)', type: '执行器', protocol: 'Modbus RTU', date: '2023-10-24', image: '/device/RS485_WaterPump_Thumbnail.png' },
+    { id: 'c2', name: '高精度测试仪', type: '仪器设备', protocol: 'Modbus RTU', date: '2023-11-05', image: '/device/RS485_Humiture_Thumbnail.png' },
+    { id: 'c3', name: '定制控制面板', type: '控制终端', protocol: 'Zigbee', date: '2024-01-12', image: '/device/Other_XC40_DoorControl_Thumbnail.png' },
+    { id: 'c4', name: '复合传感器模块A', type: '传感器', protocol: '模拟量', date: '2024-02-18', image: '/device/NewLabCommon_Thumbnail.png' },
+    { id: 'c5', name: '特殊网关协议版', type: '网关', protocol: 'MQTT', date: '2024-03-01', image: '/device/UsrG771Gateway_Thumbnail.png' },
+    { id: 'c6', name: '压力监测单元', type: '传感器', protocol: '模拟量', date: '2024-04-10', image: '/device/RS485_Pressure_Thumbnail.png' },
   ];
 
   return (
@@ -269,7 +315,7 @@ export default function DesignPage() {
               <Search size={14} className="absolute left-2.5 top-2.5 text-gray-400" />
               <input 
                 className="w-full bg-gray-50 border border-gray-200 rounded-lg pl-8 pr-3 py-1.5 text-xs outline-none focus:border-blue-400 focus:bg-white transition-colors" 
-                placeholder="搜索传感器、网关、继电器..." 
+                placeholder="搜索传感器、网关、继电器、协议..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -310,43 +356,49 @@ export default function DesignPage() {
                     <span className="text-blue-600 font-bold">{searchResults.length} 个匹配</span>
                   </div>
                   {searchResults.length > 0 ? (
-                    searchResults.map(device => (
-                      <div 
-                        key={device.id} 
-                        draggable
-                        onDragStart={(e) => handleDragStartFromSidebar(e, device)}
-                        className="bg-white p-2.5 rounded-lg border border-gray-200 shadow-xs hover:border-blue-300 hover:shadow cursor-grab active:cursor-grabbing flex items-center gap-3 transition-all group"
-                        title={`拖拽添加至画布: ${device.name}`}
-                      >
-                        <div className="w-12 h-12 rounded bg-gray-50 flex items-center justify-center shrink-0 border border-gray-100 p-1 group-hover:scale-105 transition-transform overflow-hidden pointer-events-none">
-                          <DeviceImage
-                            deviceId={device.id}
-                            customImage={device.image}
-                            alt={device.name}
-                            className="w-full h-full object-contain"
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0 pointer-events-none">
-                          <div className="text-[13px] font-bold text-gray-800 truncate group-hover:text-blue-600 transition-colors" title={device.name}>
-                            {device.name}
-                          </div>
-                          <div className="flex items-center gap-1 mt-1 text-[10px] text-gray-500">
-                             <Layers size={10} className="shrink-0 text-gray-400" />
-                             <div className="truncate" title={device.categoryPath || '系统设备'}>{device.categoryPath || '系统设备'}</div>
-                          </div>
-                        </div>
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleAddDeviceToCanvas(device);
-                          }}
-                          className="w-6 h-6 shrink-0 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center opacity-0 group-hover:opacity-100 hover:!bg-blue-600 hover:!text-white transition-all cursor-pointer shadow-xs"
-                          title="点击添加到画布"
+                    searchResults.map(device => {
+                      const proto = device.protocol || inferProtocol(device, device.categoryPath);
+                      return (
+                        <div 
+                          key={device.id} 
+                          draggable
+                          onDragStart={(e) => handleDragStartFromSidebar(e, device)}
+                          className="bg-white p-2.5 rounded-lg border border-gray-200 shadow-xs hover:border-blue-300 hover:shadow cursor-grab active:cursor-grabbing flex items-center gap-3 transition-all group"
+                          title={`可拖拽或点击右侧 + 添加至画布: ${device.name}`}
                         >
-                          <Plus size={14} />
-                        </button>
-                      </div>
-                    ))
+                          <div className="w-12 h-12 rounded bg-gray-50 flex items-center justify-center shrink-0 border border-gray-100 p-1 group-hover:scale-105 transition-transform overflow-hidden pointer-events-none">
+                            <DeviceImage
+                              deviceId={device.id}
+                              customImage={device.image}
+                              alt={device.name}
+                              className="w-full h-full object-contain"
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0 pointer-events-none">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[12px] font-bold text-gray-800 truncate group-hover:text-blue-600 transition-colors" title={device.name}>
+                                {device.name}
+                              </span>
+                              <ProtocolBadge protocol={proto} />
+                            </div>
+                            <div className="flex items-center gap-1 mt-1 text-[10px] text-gray-500">
+                               <Layers size={10} className="shrink-0 text-gray-400" />
+                               <div className="truncate" title={device.categoryPath || '系统设备'}>{device.categoryPath || '系统设备'}</div>
+                            </div>
+                          </div>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAddDeviceToCanvas(device);
+                            }}
+                            className="w-6 h-6 shrink-0 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center opacity-0 group-hover:opacity-100 hover:!bg-blue-600 hover:!text-white transition-all cursor-pointer shadow-xs"
+                            title="点击添加到画布"
+                          >
+                            <Plus size={14} />
+                          </button>
+                        </div>
+                      );
+                    })
                   ) : (
                     <div className="text-center py-10 text-gray-400 text-xs">
                       <Box size={32} className="mx-auto mb-2 text-gray-300 stroke-[1.5]" />
@@ -426,7 +478,7 @@ export default function DesignPage() {
                                 const subDevices = sub.children || [];
                                 
                                 return (
-                                  <div key={sub.id} className="transition-colors">
+                                   <div key={sub.id} className="transition-colors">
                                     {/* Level 2: Subcategory Header (e.g. 有线传感器, 无线传感器, 继电器) */}
                                     <div 
                                       onClick={() => toggleSubcategory(sub.id)}
@@ -454,77 +506,89 @@ export default function DesignPage() {
                                           viewMode === 'grid' ? (
                                             /* Grid View (2 Columns for Clean Layout in 300px sidebar) */
                                             <div className="grid grid-cols-2 gap-2">
-                                              {subDevices.map((device: any) => (
-                                                <div
-                                                  key={device.id}
-                                                  draggable
-                                                  onDragStart={(e) => handleDragStartFromSidebar(e, device)}
-                                                  className="group relative flex flex-col items-center bg-white border border-gray-200/90 rounded-lg p-2 hover:border-blue-400 hover:shadow-md cursor-grab active:cursor-grabbing transition-all select-none"
-                                                  title={`可拖拽添加: ${device.name}`}
-                                                >
-                                                  <div className="w-12 h-12 rounded bg-gray-50 flex items-center justify-center p-1 relative overflow-hidden mb-1.5 border border-gray-100 group-hover:scale-105 transition-transform pointer-events-none">
-                                                    <DeviceImage
-                                                      deviceId={device.id}
-                                                      customImage={device.image}
-                                                      alt={device.name}
-                                                      className="w-full h-full object-contain"
-                                                    />
-                                                  </div>
-                                                  <div className="text-[11px] font-medium text-gray-700 text-center truncate w-full group-hover:text-blue-600 transition-colors pointer-events-none">
-                                                    {device.name}
-                                                  </div>
-                                                  <button 
-                                                    onClick={(e) => {
-                                                      e.stopPropagation();
-                                                      handleAddDeviceToCanvas(device);
-                                                    }}
-                                                    className="absolute top-1 right-1 w-5 h-5 rounded-full bg-blue-50 text-blue-600 opacity-0 group-hover:opacity-100 hover:!bg-blue-600 hover:!text-white flex items-center justify-center transition-all shadow-xs cursor-pointer"
-                                                    title="点击添加到画布"
+                                              {subDevices.map((device: any) => {
+                                                const proto = device.protocol || inferProtocol(device, sub.name);
+                                                return (
+                                                  <div
+                                                    key={device.id}
+                                                    draggable
+                                                    onDragStart={(e) => handleDragStartFromSidebar(e, device)}
+                                                    className="group relative flex flex-col items-center bg-white border border-gray-200/90 rounded-lg p-2 hover:border-blue-400 hover:shadow-md cursor-grab active:cursor-grabbing transition-all select-none"
+                                                    title={`可拖拽或点击右上方 + 添加: ${device.name}`}
                                                   >
-                                                    <Plus size={12} />
-                                                  </button>
-                                                </div>
-                                              ))}
+                                                    <div className="w-12 h-12 rounded bg-gray-50 flex items-center justify-center p-1 relative overflow-hidden mb-1.5 border border-gray-100 group-hover:scale-105 transition-transform pointer-events-none">
+                                                      <DeviceImage
+                                                        deviceId={device.id}
+                                                        customImage={device.image}
+                                                        alt={device.name}
+                                                        className="w-full h-full object-contain"
+                                                      />
+                                                    </div>
+                                                    <div className="text-[11px] font-medium text-gray-700 text-center truncate w-full group-hover:text-blue-600 transition-colors pointer-events-none">
+                                                      {device.name}
+                                                    </div>
+                                                    <div className="mt-1 flex items-center justify-center pointer-events-none">
+                                                      <ProtocolBadge protocol={proto} />
+                                                    </div>
+                                                    <button 
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleAddDeviceToCanvas(device);
+                                                      }}
+                                                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-blue-50 text-blue-600 opacity-0 group-hover:opacity-100 hover:!bg-blue-600 hover:!text-white flex items-center justify-center transition-all shadow-xs cursor-pointer z-10"
+                                                      title="点击添加到画布"
+                                                    >
+                                                      <Plus size={12} />
+                                                    </button>
+                                                  </div>
+                                                );
+                                              })}
                                             </div>
                                           ) : (
                                             /* List View */
                                             <div className="space-y-1.5">
-                                              {subDevices.map((device: any) => (
-                                                <div
-                                                  key={device.id}
-                                                  draggable
-                                                  onDragStart={(e) => handleDragStartFromSidebar(e, device)}
-                                                  className="group flex items-center gap-2.5 bg-white border border-gray-200/90 rounded-lg p-2 hover:border-blue-400 hover:shadow-sm cursor-grab active:cursor-grabbing transition-all select-none"
-                                                  title={`可拖拽添加: ${device.name}`}
-                                                >
-                                                  <div className="w-10 h-10 rounded bg-gray-50 flex items-center justify-center p-1 shrink-0 border border-gray-100 overflow-hidden pointer-events-none">
-                                                    <DeviceImage
-                                                      deviceId={device.id}
-                                                      customImage={device.image}
-                                                      alt={device.name}
-                                                      className="w-full h-full object-contain"
-                                                    />
-                                                  </div>
-                                                  <div className="flex-1 min-w-0 pointer-events-none">
-                                                    <div className="text-xs font-semibold text-gray-800 truncate group-hover:text-blue-600 transition-colors">
-                                                      {device.name}
-                                                    </div>
-                                                    <div className="text-[10px] text-gray-400 font-mono mt-0.5 truncate">
-                                                      {device.id}
-                                                    </div>
-                                                  </div>
-                                                  <button 
-                                                    onClick={(e) => {
-                                                      e.stopPropagation();
-                                                      handleAddDeviceToCanvas(device);
-                                                    }}
-                                                    className="w-6 h-6 rounded-full bg-gray-100 text-gray-600 opacity-0 group-hover:opacity-100 group-hover:bg-blue-50 group-hover:text-blue-600 hover:!bg-blue-600 hover:!text-white flex items-center justify-center shrink-0 transition-all cursor-pointer"
-                                                    title="点击添加到画布"
+                                              {subDevices.map((device: any) => {
+                                                const proto = device.protocol || inferProtocol(device, sub.name);
+                                                return (
+                                                  <div
+                                                    key={device.id}
+                                                    draggable
+                                                    onDragStart={(e) => handleDragStartFromSidebar(e, device)}
+                                                    className="group flex items-center gap-2.5 bg-white border border-gray-200/90 rounded-lg p-2 hover:border-blue-400 hover:shadow-sm cursor-grab active:cursor-grabbing transition-all select-none"
+                                                    title={`可拖拽或点击右侧 + 添加: ${device.name}`}
                                                   >
-                                                    <Plus size={12} />
-                                                  </button>
-                                                </div>
-                                              ))}
+                                                    <div className="w-10 h-10 rounded bg-gray-50 flex items-center justify-center p-1 shrink-0 border border-gray-100 overflow-hidden pointer-events-none">
+                                                      <DeviceImage
+                                                        deviceId={device.id}
+                                                        customImage={device.image}
+                                                        alt={device.name}
+                                                        className="w-full h-full object-contain"
+                                                      />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0 pointer-events-none">
+                                                      <div className="flex items-center gap-1.5">
+                                                        <span className="text-xs font-semibold text-gray-800 truncate group-hover:text-blue-600 transition-colors">
+                                                          {device.name}
+                                                        </span>
+                                                        <ProtocolBadge protocol={proto} />
+                                                      </div>
+                                                      <div className="text-[10px] text-gray-400 font-mono mt-0.5 truncate">
+                                                        {device.id}
+                                                      </div>
+                                                    </div>
+                                                    <button 
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleAddDeviceToCanvas(device);
+                                                      }}
+                                                      className="w-6 h-6 rounded-full bg-gray-100 text-gray-600 opacity-0 group-hover:opacity-100 group-hover:bg-blue-50 group-hover:text-blue-600 hover:!bg-blue-600 hover:!text-white flex items-center justify-center shrink-0 transition-all cursor-pointer"
+                                                      title="点击添加到画布"
+                                                    >
+                                                      <Plus size={12} />
+                                                    </button>
+                                                  </div>
+                                                );
+                                              })}
                                             </div>
                                           )
                                         ) : (
@@ -565,7 +629,7 @@ export default function DesignPage() {
                     draggable
                     onDragStart={(e) => handleDragStartFromSidebar(e, dev)}
                     className="bg-white p-3 rounded-lg border border-gray-200 shadow-xs hover:shadow hover:border-blue-300 cursor-grab active:cursor-grabbing transition-all flex items-start gap-3 group select-none"
-                    title={`可拖拽添加: ${dev.name}`}
+                    title={`可拖拽或点击右侧 + 添加: ${dev.name}`}
                   >
                     <div className="w-11 h-11 rounded-md bg-gray-50 border border-gray-100 flex items-center justify-center shrink-0 overflow-hidden group-hover:scale-105 transition-transform p-1 pointer-events-none">
                       <DeviceImage
@@ -577,9 +641,10 @@ export default function DesignPage() {
                     </div>
                     <div className="flex-1 min-w-0 pointer-events-none">
                       <div className="text-xs font-bold text-gray-800 truncate group-hover:text-blue-600 transition-colors">{dev.name}</div>
-                      <div className="flex items-center gap-2 mt-1.5">
+                      <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                         <span className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded font-medium border border-blue-100">{dev.type}</span>
-                        <span className="text-[10px] text-gray-400 font-mono">{dev.date}</span>
+                        <ProtocolBadge protocol={dev.protocol || 'Modbus RTU'} />
+                        <span className="text-[10px] text-gray-400 font-mono ml-auto">{dev.date}</span>
                       </div>
                     </div>
                     <button 
