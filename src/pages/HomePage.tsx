@@ -1,10 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { User, ChevronRight, ChevronDown, ChevronLeft, Cpu, Thermometer, Wind, Sun, Droplets, CloudRain, Activity, Search, Folder, FolderOpen, Box, Check, Eye, Clock, LayoutGrid, Calendar, Copy, X, Bot, Wrench, PlusSquare, Image as ImageIcon, FolderPlus, Plus, Minus, Maximize, RotateCcw, Code, Sliders, Zap, ArrowRight, CheckCircle2, Terminal, HelpCircle } from 'lucide-react';
+import { User, ChevronRight, ChevronDown, ChevronLeft, ChevronUp, Cpu, Thermometer, Wind, Sun, Droplets, CloudRain, Activity, Search, Folder, FolderOpen, Box, Check, Eye, Clock, LayoutGrid, Calendar, Copy, X, Bot, Wrench, PlusSquare, Image as ImageIcon, FolderPlus, Plus, Minus, Maximize, RotateCcw, Code, Sliders, Zap, ArrowRight, CheckCircle2, Terminal, HelpCircle } from 'lucide-react';
 import { deviceTreeData } from '../data/deviceTree';
 import { deviceImageMap } from '../data/deviceImageMap';
 import { getDeviceImageUrl } from '../utils/deviceImages';
 import { getDeviceProtocolInfo } from '../utils/deviceProtocolHelper';
+import { useHeader } from '../context/HeaderContext';
 
 const maskUserName = (name?: string): string => {
   if (!name) return '杨*邦';
@@ -88,12 +89,20 @@ const MOCK_PUBLIC_PROJECTS = [
 
 export default function HomePage() {
   const location = useLocation();
-  const navigate = useNavigate();
-  const [activePrimaryNav, setActivePrimaryNav] = useState(location.state?.activeTab || '仿真设备');
+  const getNormalizedTab = (tab?: string) => {
+    if (!tab) return '仿真设备中心';
+    if (tab === '仿真设备' || tab === '仿真设备中心') return '仿真设备中心';
+    if (tab === '仿真项目' || tab === '仿真项目大厅') return '仿真项目大厅';
+    return tab;
+  };
+
+  const [activePrimaryNav, setActivePrimaryNav] = useState(getNormalizedTab(location.state?.activeTab));
+
+  const { isHeaderVisible, hideHeader } = useHeader();
 
   useEffect(() => {
     if (location.state?.activeTab) {
-      setActivePrimaryNav(location.state.activeTab);
+      setActivePrimaryNav(getNormalizedTab(location.state.activeTab));
     }
   }, [location.state]);
     
@@ -561,70 +570,81 @@ export default function HomePage() {
   return (
     <div className="h-screen overflow-hidden bg-[#f3f4f6] text-gray-800 font-sans flex flex-col">
       {/* Header */}
-      <header className="bg-white shadow-sm relative z-10 flex items-center justify-between px-8 py-3">
-        <div className="flex items-center">
-          <img src="/logo.png" alt="虚拟仿真 by UUSIMA" className="h-10 object-contain" />
-        </div>
-        
-        {/* Primary Navigation */}
-        <nav className="flex items-center gap-12 absolute left-1/2 -translate-x-1/2 h-full">
-          {['仿真设备', '仿真项目'].map(nav => (
-            <button
-              key={nav}
-              onClick={() => setActivePrimaryNav(nav)}
-              className={`text-[15px] font-medium transition-colors h-full flex items-center border-b-2 relative top-[2px] ${
-                activePrimaryNav === nav 
-                   ? 'text-[#00a0e9] border-[#00a0e9]' 
-                   : 'text-gray-600 border-transparent hover:text-[#00a0e9]'
-              }`}
-            >
-              {nav}
-            </button>
-          ))}
-          <Link
-            to="/console"
-            className="text-[15px] font-medium transition-colors h-full flex items-center border-b-2 relative top-[2px] text-gray-600 border-transparent hover:text-[#00a0e9]"
+      {isHeaderVisible && (
+        <header className="bg-white shadow-sm relative z-10 flex items-center justify-between px-8 py-3 shrink-0">
+          <div className="flex items-center">
+            <img src="/logo.png" alt="虚拟仿真 by UUSIMA" className="h-10 object-contain" />
+          </div>
+
+          {/* 顶部靠中间位置的透明小箭头向上图标 */}
+          <button
+            onClick={hideHeader}
+            className="absolute top-0.5 left-1/2 -translate-x-1/2 z-30 py-0.5 px-3 rounded-b-md bg-gray-100/70 hover:bg-gray-200 text-gray-400 hover:text-gray-700 transition-all cursor-pointer group flex items-center justify-center opacity-70 hover:opacity-100 shadow-2xs backdrop-blur-2xs"
+            title="收起顶部导航（左下角可切换页面与恢复）"
           >
-            控制台
-          </Link>
-        </nav>
-
-        {/* User Profile Dropdown */}
-        <div className="relative group z-50">
-          <div className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 px-3 py-2 rounded-md transition-colors">
-            <div className="w-8 h-8 rounded-full bg-[#cbd5e1] flex items-center justify-center text-white overflow-hidden">
-              <User size={20} className="mt-1" />
-            </div>
-            <span className="text-sm font-medium text-gray-700">杨振邦(15396005420)</span>
-          </div>
-
-          {/* Dropdown Menu */}
-          <div className="absolute right-0 top-full mt-1 w-64 bg-white rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 origin-top-right text-gray-700 py-1 border border-gray-100">
-            <div className="py-1">
-              <a href="#" className="block px-5 py-3 text-sm hover:bg-gray-50 transition-colors">个人中心</a>
-              <a href="#" className="block px-5 py-3 text-sm hover:bg-gray-50 transition-colors">UPMS</a>
-            </div>
-            <div className="border-t border-gray-100 mx-5"></div>
-            <div className="py-1">
-              <a href="#" className="block px-5 py-3 text-sm text-[#ff4d4f] hover:bg-red-50 transition-colors">退出登录</a>
-            </div>
-            <div className="border-t border-gray-100 mx-5"></div>
-            <div className="p-5 pt-3">
-              <div className="text-xs text-gray-500 font-medium mb-3">组织</div>
-              <button className="w-full flex items-center justify-between bg-[#f8f9fa] hover:bg-gray-100 px-4 py-2.5 rounded transition-colors group/btn">
-                <span className="text-gray-800 text-sm font-medium">新大陆教育行业云</span>
-                <span className="text-gray-400 flex items-center text-[13px] group-hover/btn:text-gray-600">
-                  切换 <ChevronRight size={14} className="ml-0.5" />
-                </span>
+            <ChevronUp size={13} className="group-hover:-translate-y-0.5 transition-transform" />
+          </button>
+          
+          {/* Primary Navigation */}
+          <nav className="flex items-center gap-12 absolute left-1/2 -translate-x-1/2 h-full">
+            {['仿真设备中心', '仿真项目大厅'].map(nav => (
+              <button
+                key={nav}
+                onClick={() => setActivePrimaryNav(nav)}
+                className={`text-[15px] font-medium transition-colors h-full flex items-center border-b-2 relative top-[2px] cursor-pointer ${
+                  activePrimaryNav === nav 
+                     ? 'text-[#00a0e9] border-[#00a0e9]' 
+                     : 'text-gray-600 border-transparent hover:text-[#00a0e9]'
+                }`}
+              >
+                {nav}
               </button>
+            ))}
+            <Link
+              to="/console"
+              className="text-[15px] font-medium transition-colors h-full flex items-center border-b-2 relative top-[2px] text-gray-600 border-transparent hover:text-[#00a0e9]"
+            >
+              控制台
+            </Link>
+          </nav>
+
+          {/* User Profile Dropdown */}
+          <div className="relative group z-50">
+            <div className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 px-3 py-2 rounded-md transition-colors">
+              <div className="w-8 h-8 rounded-full bg-[#cbd5e1] flex items-center justify-center text-white overflow-hidden">
+                <User size={20} className="mt-1" />
+              </div>
+              <span className="text-sm font-medium text-gray-700">杨振邦(15396005420)</span>
+            </div>
+
+            {/* Dropdown Menu */}
+            <div className="absolute right-0 top-full mt-1 w-64 bg-white rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 origin-top-right text-gray-700 py-1 border border-gray-100">
+              <div className="py-1">
+                <a href="#" className="block px-5 py-3 text-sm hover:bg-gray-50 transition-colors">个人中心</a>
+                <a href="#" className="block px-5 py-3 text-sm hover:bg-gray-50 transition-colors">UPMS</a>
+              </div>
+              <div className="border-t border-gray-100 mx-5"></div>
+              <div className="py-1">
+                <a href="#" className="block px-5 py-3 text-sm text-[#ff4d4f] hover:bg-red-50 transition-colors">退出登录</a>
+              </div>
+              <div className="border-t border-gray-100 mx-5"></div>
+              <div className="p-5 pt-3">
+                <div className="text-xs text-gray-500 font-medium mb-3">组织</div>
+                <button className="w-full flex items-center justify-between bg-[#f8f9fa] hover:bg-gray-100 px-4 py-2.5 rounded transition-colors group/btn">
+                  <span className="text-gray-800 text-sm font-medium">新大陆教育行业云</span>
+                  <span className="text-gray-400 flex items-center text-[13px] group-hover/btn:text-gray-600">
+                    切换 <ChevronRight size={14} className="ml-0.5" />
+                  </span>
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      </header>
+        </header>
+      )}
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-[1500px] w-full mx-auto p-6 flex flex-col min-h-0">
-        {activePrimaryNav === '仿真设备' && (
+        {(activePrimaryNav === '仿真设备中心' || activePrimaryNav === '仿真设备') && (
           <div className="flex gap-6 flex-1 min-h-0">
             {/* Sidebar for Tree */}
             {isSidebarOpen && (
@@ -1259,7 +1279,7 @@ export default function HomePage() {
           </div>
         )}
         
-        {activePrimaryNav === '仿真项目' && (() => {
+        {(activePrimaryNav === '仿真项目大厅' || activePrimaryNav === '仿真项目') && (() => {
           const filteredProjects = MOCK_PUBLIC_PROJECTS.filter(project => {
             if (projectTypeFilter === '系统项目' && project.type !== '系统应用') return false;
             if (projectTypeFilter === '个人项目' && project.type !== '个人应用') return false;

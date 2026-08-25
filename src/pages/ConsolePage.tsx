@@ -2,15 +2,20 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import AddCustomDeviceModal from "../components/AddCustomDeviceModal";
 import DeviceMaterialManager from "../components/DeviceMaterialManager";
+import SystemSimDeviceManager from "../components/SystemSimDeviceManager";
+import UserAppManager from "../components/UserAppManager";
+import UserCustomDeviceManager from "../components/UserCustomDeviceManager";
+import TagResourceManager from "../components/TagResourceManager";
 import { 
   LayoutGrid, List, Settings, Search, MoreHorizontal, Pen, 
-  ChevronDown, ChevronRight, UserCircle2, Box, X, UploadCloud, 
+  ChevronDown, ChevronRight, ChevronUp, UserCircle2, Box, X, UploadCloud, 
   Check, Sparkles, Copy, Eye, Plus, Layers, Image as ImageIcon, 
   Trash2, Filter, RotateCcw, Code, Terminal, CheckCircle2, Sliders, 
   HelpCircle, Zap, Globe, Lock
 } from 'lucide-react';
 import { getDeviceImageUrl } from '../utils/deviceImages';
 import { getDeviceProtocolInfo } from '../utils/deviceProtocolHelper';
+import { useHeader } from '../context/HeaderContext';
 
 const projects = [
   { 
@@ -74,6 +79,7 @@ export default function ConsolePage() {
   const [selectedDeviceProtocol, setSelectedDeviceProtocol] = useState<string>('all');
   const [selectedPublishStatus, setSelectedPublishStatus] = useState<string>('all');
   const navigate = useNavigate();
+  const { isHeaderVisible, hideHeader } = useHeader();
 
   const [customDeviceList, setCustomDeviceList] = useState(initialCustomDevices);
   const [isAddDeviceModalOpen, setIsAddDeviceModalOpen] = useState(false);
@@ -242,37 +248,48 @@ export default function ConsolePage() {
   return (
     <div className="h-screen bg-[#f0f2f5] flex flex-col font-sans overflow-hidden">
       {/* Top Header */}
-      <header className="h-14 bg-white border-b border-gray-200 flex justify-between items-center px-6 shrink-0 z-10 relative">
-        <div className="flex items-center gap-3">
-          <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
-            <img src="/logo.png" alt="虚拟仿真 by UUSIMA" className="h-10 object-contain" />
-          </Link>
-        </div>
-
-        {/* Primary Navigation */}
-        <nav className="flex items-center gap-12 absolute left-1/2 -translate-x-1/2 h-full">
-          {['仿真设备', '仿真项目'].map(nav => (
-            <button
-              key={nav}
-              onClick={() => handleNavClick(nav)}
-              className="text-[15px] font-medium transition-colors h-full flex items-center border-b-2 relative top-[2px] text-gray-600 border-transparent hover:text-[#00a0e9]"
-            >
-              {nav}
-            </button>
-          ))}
-          <div
-            className="text-[15px] font-medium transition-colors h-full flex items-center border-b-2 relative top-[2px] text-[#00a0e9] border-[#00a0e9]"
-          >
-            控制台
+      {isHeaderVisible && (
+        <header className="h-14 bg-white border-b border-gray-200 flex justify-between items-center px-6 shrink-0 z-10 relative">
+          <div className="flex items-center gap-3">
+            <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
+              <img src="/logo.png" alt="虚拟仿真 by UUSIMA" className="h-10 object-contain" />
+            </Link>
           </div>
-        </nav>
 
-        <div className="flex items-center gap-2 text-gray-600 cursor-pointer hover:text-blue-600 transition-colors">
-           <UserCircle2 size={20} />
-           <span className="text-sm">杨振邦</span>
-           <ChevronDown size={14} />
-        </div>
-      </header>
+          {/* 顶部靠中间位置的透明小箭头向上图标 */}
+          <button
+            onClick={hideHeader}
+            className="absolute top-0.5 left-1/2 -translate-x-1/2 z-30 py-0.5 px-3 rounded-b-md bg-gray-100/70 hover:bg-gray-200 text-gray-400 hover:text-gray-700 transition-all cursor-pointer group flex items-center justify-center opacity-70 hover:opacity-100 shadow-2xs backdrop-blur-2xs"
+            title="收起顶部导航（左下角可切换页面与恢复）"
+          >
+            <ChevronUp size={13} className="group-hover:-translate-y-0.5 transition-transform" />
+          </button>
+
+          {/* Primary Navigation */}
+          <nav className="flex items-center gap-12 absolute left-1/2 -translate-x-1/2 h-full">
+            {['仿真设备中心', '仿真项目大厅'].map(nav => (
+              <button
+                key={nav}
+                onClick={() => handleNavClick(nav)}
+                className="text-[15px] font-medium transition-colors h-full flex items-center border-b-2 relative top-[2px] text-gray-600 border-transparent hover:text-[#00a0e9] cursor-pointer"
+              >
+                {nav}
+              </button>
+            ))}
+            <div
+              className="text-[15px] font-medium transition-colors h-full flex items-center border-b-2 relative top-[2px] text-[#00a0e9] border-[#00a0e9]"
+            >
+              控制台
+            </div>
+          </nav>
+
+          <div className="flex items-center gap-2 text-gray-600 cursor-pointer hover:text-blue-600 transition-colors">
+             <UserCircle2 size={20} />
+             <span className="text-sm">杨振邦</span>
+             <ChevronDown size={14} />
+          </div>
+        </header>
+      )}
 
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
@@ -319,10 +336,34 @@ export default function ConsolePage() {
               {isSystemMenuOpen && (
                 <div className="space-y-0.5 mt-0.5">
                   <div 
+                    onClick={() => setActiveMenu('用户应用管理')}
+                    className={`px-12 py-2 text-sm cursor-pointer font-medium transition-colors border-r-2 flex items-center justify-between ${activeMenu === '用户应用管理' ? 'bg-blue-50/70 text-blue-600 border-blue-600 font-semibold' : 'text-gray-600 border-transparent hover:bg-gray-50'}`}
+                  >
+                    <span>用户应用管理</span>
+                  </div>
+                  <div 
+                    onClick={() => setActiveMenu('用户自定义设备')}
+                    className={`px-12 py-2 text-sm cursor-pointer font-medium transition-colors border-r-2 flex items-center justify-between ${activeMenu === '用户自定义设备' ? 'bg-blue-50/70 text-blue-600 border-blue-600 font-semibold' : 'text-gray-600 border-transparent hover:bg-gray-50'}`}
+                  >
+                    <span>用户自定义设备</span>
+                  </div>
+                  <div 
+                    onClick={() => setActiveMenu('系统仿真设备')}
+                    className={`px-12 py-2 text-sm cursor-pointer font-medium transition-colors border-r-2 flex items-center justify-between ${activeMenu === '系统仿真设备' ? 'bg-blue-50/70 text-blue-600 border-blue-600 font-semibold' : 'text-gray-600 border-transparent hover:bg-gray-50'}`}
+                  >
+                    <span>系统仿真设备</span>
+                  </div>
+                  <div 
                     onClick={() => setActiveMenu('设备素材管理')}
                     className={`px-12 py-2 text-sm cursor-pointer font-medium transition-colors border-r-2 flex items-center justify-between ${activeMenu === '设备素材管理' ? 'bg-blue-50/70 text-blue-600 border-blue-600 font-semibold' : 'text-gray-600 border-transparent hover:bg-gray-50'}`}
                   >
                     <span>设备素材管理</span>
+                  </div>
+                  <div 
+                    onClick={() => setActiveMenu('标签资源管理')}
+                    className={`px-12 py-2 text-sm cursor-pointer font-medium transition-colors border-r-2 flex items-center justify-between ${activeMenu === '标签资源管理' ? 'bg-blue-50/70 text-blue-600 border-blue-600 font-semibold' : 'text-gray-600 border-transparent hover:bg-gray-50'}`}
+                  >
+                    <span>标签资源管理</span>
                   </div>
                 </div>
               )}
@@ -331,8 +372,16 @@ export default function ConsolePage() {
         </aside>
 
         {/* Main Content Area */}
-        {activeMenu === '设备素材管理' ? (
+        {activeMenu === '用户应用管理' ? (
+          <UserAppManager />
+        ) : activeMenu === '用户自定义设备' ? (
+          <UserCustomDeviceManager />
+        ) : activeMenu === '系统仿真设备' ? (
+          <SystemSimDeviceManager />
+        ) : activeMenu === '设备素材管理' ? (
           <DeviceMaterialManager createModalTrigger={createMaterialTrigger} />
+        ) : activeMenu === '标签资源管理' ? (
+          <TagResourceManager />
         ) : (
           <main className="flex-1 flex flex-col bg-[#f0f2f5] overflow-y-auto">
             <div className="p-6 pb-2 flex-grow">
@@ -1012,23 +1061,9 @@ export default function ConsolePage() {
                               setSelectedDeviceDetail(null);
                               openCopyDeviceModal(dev);
                             }}
-                            className="w-full py-2.5 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-xl font-medium text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                            className="w-full py-2.5 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-xl font-medium text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-2xs"
                           >
                             <Copy size={14} /> 复制此自定义设备
-                          </button>
-                          <button 
-                            onClick={() => {
-                              handleTogglePublish(selectedDeviceDetail.id);
-                              setSelectedDeviceDetail(prev => prev ? ({ ...prev, publishToSimulation: !prev.publishToSimulation }) : null);
-                            }}
-                            className={`w-full py-2 rounded-xl font-medium text-xs transition-colors flex items-center justify-center gap-2 border cursor-pointer ${
-                              selectedDeviceDetail.publishToSimulation
-                                ? 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-200'
-                                : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200'
-                            }`}
-                          >
-                            <Globe size={14} />
-                            {selectedDeviceDetail.publishToSimulation ? '取消发布 (设为私有)' : '发布至公共仿真大厅'}
                           </button>
                         </div>
                       </div>

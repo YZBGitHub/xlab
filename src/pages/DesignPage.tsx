@@ -1,17 +1,18 @@
 import { 
-  Settings, Search, ChevronRight, 
+  Settings, Search, ChevronRight, ChevronUp,
   MousePointer2, Type, Image, Undo, Redo, 
   Eye, FileText, Cloud, Clock, ChevronDown, UserCircle2,
   Grid3X3, ArrowRightLeft, AlignLeft, Layers, Plus,
   Box, LayoutGrid, List, Sparkles, AlertCircle
 } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import React, { useState, useEffect, useMemo } from 'react';
 
 import AddCustomDeviceModal from '../components/AddCustomDeviceModal';
 import { deviceTreeData } from '../data/deviceTree';
 import { getDeviceImageUrl } from '../utils/deviceImages';
 import { useDraggable } from '../hooks/useDraggable';
+import { useHeader } from '../context/HeaderContext';
 
 const DeviceImage = ({ deviceId, customImage, alt, className }: { deviceId?: string, customImage?: string, alt?: string, className?: string }) => {
   const [errorStatus, setErrorStatus] = useState<0 | 1 | 2>(0);
@@ -39,7 +40,7 @@ const DeviceImage = ({ deviceId, customImage, alt, className }: { deviceId?: str
       className={className}
       loading="lazy"
       onError={() => {
-        setErrorStatus(prev => (prev === 0 ? 1 : 2));
+        setErrorStatus(prev => (prev < 2 ? (prev + 1 as 1 | 2) : 2));
       }}
     />
   );
@@ -110,6 +111,12 @@ const getAllLeafNodes = (nodes: any[], currentPath: string = ''): any[] => {
 
 export default function DesignPage() {
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleNavClick = (nav: string) => {
+    navigate('/', { state: { activeTab: nav } });
+  };
+
   const [isAddDeviceModalOpen, setIsAddDeviceModalOpen] = useState(false);
   const [activeDeviceTab, setActiveDeviceTab] = useState<'system' | 'custom'>('system');
   const [searchQuery, setSearchQuery] = useState('');
@@ -142,6 +149,7 @@ export default function DesignPage() {
     return null;
   }, [location.state]);
 
+  const { isHeaderVisible, hideHeader } = useHeader();
   const [projectName, setProjectName] = useState('默认仿真工程');
 
   // Canvas nodes
@@ -273,27 +281,49 @@ export default function DesignPage() {
     <div className="h-screen bg-[#f5f5f5] flex flex-col font-sans overflow-hidden">
       
       {/* Top Header */}
-      <header className="h-12 bg-white border-b flex justify-between items-center px-4 shrink-0 z-20 relative shadow-xs">
-        <div className="flex items-center gap-3">
-          <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
-            <img src="/logo.png" alt="虚拟仿真 by UUSIMA" className="h-10 object-contain" />
-          </Link>
-          <div className="h-4 w-px bg-gray-300 mx-1"></div>
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-gray-800 text-sm">{projectName}</span>
-            {importedCase && (
-              <span className="text-[10px] bg-blue-50 text-blue-600 font-bold px-2 py-0.5 rounded-full border border-blue-100 flex items-center gap-1">
-                <Sparkles size={11} /> 自建仿真案例
-              </span>
-            )}
+      {isHeaderVisible && (
+        <header className="h-14 bg-white border-b border-gray-200 flex justify-between items-center px-6 shrink-0 z-20 relative shadow-2xs">
+          <div className="flex items-center gap-3">
+            <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
+              <img src="/logo.png" alt="虚拟仿真 by UUSIMA" className="h-10 object-contain" />
+            </Link>
           </div>
-        </div>
-        <div className="flex items-center gap-3 text-gray-600 cursor-pointer hover:text-blue-600 transition-colors">
-           <UserCircle2 size={18} />
-           <span className="text-sm font-medium">杨振邦</span>
-           <ChevronDown size={14} />
-        </div>
-      </header>
+
+          {/* 顶部靠中间位置的透明小箭头向上图标 */}
+          <button
+            onClick={hideHeader}
+            className="absolute top-0.5 left-1/2 -translate-x-1/2 z-30 py-0.5 px-3 rounded-b-md bg-gray-100/70 hover:bg-gray-200 text-gray-400 hover:text-gray-700 transition-all cursor-pointer group flex items-center justify-center opacity-70 hover:opacity-100 shadow-2xs backdrop-blur-2xs"
+            title="收起顶部导航（左下角可切换页面与恢复）"
+          >
+            <ChevronUp size={13} className="group-hover:-translate-y-0.5 transition-transform" />
+          </button>
+
+          {/* Primary Navigation */}
+          <nav className="flex items-center gap-12 absolute left-1/2 -translate-x-1/2 h-full">
+            {['仿真设备中心', '仿真项目大厅'].map(nav => (
+              <button
+                key={nav}
+                onClick={() => handleNavClick(nav)}
+                className="text-[15px] font-medium transition-colors h-full flex items-center border-b-2 relative top-[2px] text-gray-600 border-transparent hover:text-[#00a0e9] cursor-pointer"
+              >
+                {nav}
+              </button>
+            ))}
+            <Link
+              to="/console"
+              className="text-[15px] font-medium transition-colors h-full flex items-center border-b-2 relative top-[2px] text-gray-600 border-transparent hover:text-[#00a0e9]"
+            >
+              控制台
+            </Link>
+          </nav>
+
+          <div className="flex items-center gap-2 text-gray-600 cursor-pointer hover:text-blue-600 transition-colors">
+             <UserCircle2 size={20} />
+             <span className="text-sm font-medium">杨振邦</span>
+             <ChevronDown size={14} />
+          </div>
+        </header>
+      )}
 
       <div className="flex flex-1 overflow-hidden">
         {/* Left Sidebar */}

@@ -2,9 +2,10 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { 
   Copy, Play, Square, Eye, Clock, User, 
-  X, Cpu
+  X, Cpu, ChevronUp
 } from 'lucide-react';
 import { getDeviceImageUrl } from '../utils/deviceImages';
+import { useHeader } from '../context/HeaderContext';
 
 // Mock detailed projects data
 const MOCK_PROJECT_DETAILS: Record<number, any> = {
@@ -115,6 +116,7 @@ export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
   const projectId = Number(id) || 1;
   const project = useMemo(() => getProjectData(projectId), [projectId]);
+  const { isHeaderVisible, hideHeader } = useHeader();
 
   // Simulation State
   const [isRunning, setIsRunning] = useState(false);
@@ -206,16 +208,27 @@ export default function ProjectDetailPage() {
   return (
     <div className="min-h-screen bg-[#f3f4f6] text-gray-800 font-sans flex flex-col">
       {/* Header Bar */}
-      <header className="bg-white shadow-xs border-b border-gray-200 sticky top-0 z-30 flex items-center justify-between px-6 py-3">
-        <div className="flex items-center gap-4">
-          <Link to="/" className="flex items-center">
-            <img src="/logo.png" alt="XLab" className="h-8 object-contain" />
-          </Link>
-          <span className="text-sm font-bold text-gray-700 hidden md:inline">
-            / 仿真项目详情
-          </span>
-        </div>
-      </header>
+      {isHeaderVisible && (
+        <header className="bg-white shadow-xs border-b border-gray-200 sticky top-0 z-30 flex items-center justify-between px-6 py-3 shrink-0">
+          <div className="flex items-center gap-4">
+            <Link to="/" className="flex items-center">
+              <img src="/logo.png" alt="XLab" className="h-8 object-contain" />
+            </Link>
+            <span className="text-sm font-bold text-gray-700 hidden md:inline">
+              / 仿真项目详情
+            </span>
+          </div>
+
+          {/* 顶部靠中间位置的透明小箭头向上图标 */}
+          <button
+            onClick={hideHeader}
+            className="absolute top-0.5 left-1/2 -translate-x-1/2 z-30 py-0.5 px-3 rounded-b-md bg-gray-100/70 hover:bg-gray-200 text-gray-400 hover:text-gray-700 transition-all cursor-pointer group flex items-center justify-center opacity-70 hover:opacity-100 shadow-2xs backdrop-blur-2xs"
+            title="收起顶部导航（左下角可切换页面与恢复）"
+          >
+            <ChevronUp size={13} className="group-hover:-translate-y-0.5 transition-transform" />
+          </button>
+        </header>
+      )}
 
       {/* Main Content Layout */}
       <main className="flex-1 max-w-[1600px] w-full mx-auto p-6 flex flex-col gap-6">
