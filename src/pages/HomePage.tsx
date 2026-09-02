@@ -78,21 +78,22 @@ const findNodeById = (nodes: any[], id: string): any => {
 
 const MOCK_PUBLIC_PROJECTS = [
   { id: 1, name: '基于LoRa的智慧农场环境监控系统', category: '智慧农业', publisher: '杨**', time: '2025-10-10 22:14:56', type: '系统应用', views: 1250, image: 'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=500&h=300&fit=crop' },
-  { id: 2, name: '智能家居全屋控制中心', category: '智慧家居', publisher: '李**', time: '2025-10-09 14:20:12', type: '个人应用', views: 890, image: 'https://images.unsplash.com/photo-1558002038-1055907df827?w=500&h=300&fit=crop' },
+  { id: 2, name: '智能家居全屋控制中心', category: '智慧家居', publisher: '李**', time: '2025-10-09 14:20:12', type: '自定义应用', views: 890, image: 'https://images.unsplash.com/photo-1558002038-1055907df827?w=500&h=300&fit=crop' },
   { id: 3, name: '城市智慧交通路口监控网络', category: '智慧交通', publisher: '王**', time: '2025-10-08 09:30:45', type: '系统应用', views: 3400, image: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=500&h=300&fit=crop' },
-  { id: 4, name: '工厂园区安防巡检系统', category: '智慧安防', publisher: '陈**', time: '2025-10-05 16:45:00', type: '个人应用', views: 420, image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=500&h=300&fit=crop' },
+  { id: 4, name: '工厂园区安防巡检系统', category: '智慧安防', publisher: '陈**', time: '2025-10-05 16:45:00', type: '自定义应用', views: 420, image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=500&h=300&fit=crop' },
   { id: 5, name: '温室大棚温湿度自动调节', category: '智慧农业', publisher: '林**', time: '2025-10-01 11:10:30', type: '系统应用', views: 2100, image: 'https://images.unsplash.com/photo-1595841696677-6489ff3f8cd1?w=500&h=300&fit=crop' },
-  { id: 6, name: '智能停车场道闸控制', category: '智慧交通', publisher: '赵**', time: '2025-09-28 10:00:15', type: '个人应用', views: 156, image: 'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=500&h=300&fit=crop' },
-  { id: 7, name: '智能仓储环境监测系统', category: '智慧安防', publisher: '周**', time: '2025-09-25 15:20:00', type: '个人应用', views: 320, image: 'https://images.unsplash.com/photo-1586528116311-ad8ed7c42633?w=500&h=300&fit=crop' },
+  { id: 6, name: '智能停车场道闸控制', category: '智慧交通', publisher: '赵**', time: '2025-09-28 10:00:15', type: '自定义应用', views: 156, image: 'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=500&h=300&fit=crop' },
+  { id: 7, name: '智能仓储环境监测系统', category: '智慧安防', publisher: '周**', time: '2025-09-25 15:20:00', type: '自定义应用', views: 320, image: 'https://images.unsplash.com/photo-1586528116311-ad8ed7c42633?w=500&h=300&fit=crop' },
   { id: 8, name: '智慧教室灯光环境调节', category: '智慧家居', publisher: '吴**', time: '2025-09-22 08:45:12', type: '系统应用', views: 1890, image: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=500&h=300&fit=crop' },
 ];
 
 export default function HomePage() {
   const location = useLocation();
+  const navigate = useNavigate();
   const getNormalizedTab = (tab?: string) => {
     if (!tab) return '仿真设备中心';
     if (tab === '仿真设备' || tab === '仿真设备中心') return '仿真设备中心';
-    if (tab === '仿真项目' || tab === '仿真项目大厅') return '仿真项目大厅';
+    if (tab === '仿真项目' || tab === '仿真项目大厅' || tab === '仿真应用' || tab === '仿真应用大厅' || tab === '仿真应用中心') return '仿真应用中心';
     return tab;
   };
 
@@ -174,8 +175,8 @@ export default function HomePage() {
   const [devicePageSize, setDevicePageSize] = useState(18);
   const [deviceJumpPage, setDeviceJumpPage] = useState('1');
 
-  // Simulation Projects States
-  const [projectTypeFilter, setProjectTypeFilter] = useState<'系统项目' | '个人项目' | '全部'>('系统项目');
+  // Simulation Applications States
+  const [projectTypeFilter, setProjectTypeFilter] = useState<'系统应用' | '自定义应用' | '全部'>('系统应用');
   const [projectCategory, setProjectCategory] = useState('全部');
   const [projectSort, setProjectSort] = useState('最新发布');
   const [projectSearch, setProjectSearch] = useState('');
@@ -230,7 +231,7 @@ export default function HomePage() {
     setProjectJumpPage('1');
   }, [projectTypeFilter, projectCategory, projectSearch, projectSort]);
 
-  // Copy Project Modal States
+  // Copy Application Modal States
   const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
   const [projectToCopy, setProjectToCopy] = useState<any>(null);
   const [copyProjectName, setCopyProjectName] = useState('');
@@ -255,10 +256,10 @@ export default function HomePage() {
 
   const handleConfirmCopy = () => {
     if (!copyProjectName.trim()) {
-      alert('请输入项目名称');
+      alert('请输入应用名称');
       return;
     }
-    alert(`项目复制成功！"${copyProjectName}" 已添加至您的个人空间。`);
+    alert(`应用复制成功！"${copyProjectName}" 已添加至您的全部应用。`);
     setIsCopyModalOpen(false);
     setProjectToCopy(null);
   };
@@ -587,7 +588,7 @@ export default function HomePage() {
           
           {/* Primary Navigation */}
           <nav className="flex items-center gap-12 absolute left-1/2 -translate-x-1/2 h-full">
-            {['仿真设备中心', '仿真项目大厅'].map(nav => (
+            {['仿真设备中心', '仿真应用中心'].map(nav => (
               <button
                 key={nav}
                 onClick={() => setActivePrimaryNav(nav)}
@@ -1279,10 +1280,10 @@ export default function HomePage() {
           </div>
         )}
         
-        {(activePrimaryNav === '仿真项目大厅' || activePrimaryNav === '仿真项目') && (() => {
+        {(activePrimaryNav === '仿真应用中心' || activePrimaryNav === '仿真应用大厅' || activePrimaryNav === '仿真项目大厅' || activePrimaryNav === '仿真应用' || activePrimaryNav === '仿真项目') && (() => {
           const filteredProjects = MOCK_PUBLIC_PROJECTS.filter(project => {
-            if (projectTypeFilter === '系统项目' && project.type !== '系统应用') return false;
-            if (projectTypeFilter === '个人项目' && project.type !== '个人应用') return false;
+            if (projectTypeFilter === '系统应用' && project.type !== '系统应用') return false;
+            if (projectTypeFilter === '自定义应用' && project.type !== '自定义应用') return false;
             if (projectCategory !== '全部' && project.category !== projectCategory) return false;
             if (projectSearch.trim() && !project.name.toLowerCase().includes(projectSearch.toLowerCase().trim())) return false;
             return true;
@@ -1301,12 +1302,12 @@ export default function HomePage() {
                 {/* Top Row: Type Filter Tabs & Search */}
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-gray-500">项目类别:</span>
+                    <span className="text-sm font-medium text-gray-500">应用类别:</span>
                     <div className="flex bg-gray-100/80 p-1 rounded-lg border border-gray-200/60">
                       {[
                         { label: '全部', val: '全部' },
-                        { label: '系统项目', val: '系统项目' },
-                        { label: '个人项目', val: '个人项目' }
+                        { label: '系统应用', val: '系统应用' },
+                        { label: '自定义应用', val: '自定义应用' }
                       ].map(tab => (
                         <button
                           key={tab.val}
@@ -1326,7 +1327,7 @@ export default function HomePage() {
                   <div className="relative w-64">
                     <input 
                       type="text" 
-                      placeholder="搜索项目名称" 
+                      placeholder="搜索应用名称" 
                       value={projectSearch}
                       onChange={(e) => setProjectSearch(e.target.value)}
                       className="w-full pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-[#00a0e9] focus:bg-white transition-colors" 
@@ -1382,7 +1383,7 @@ export default function HomePage() {
                 {paginatedProjects.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-64 text-gray-400 gap-2">
                     <Box size={40} className="text-gray-300" />
-                    <p className="text-sm font-medium">暂无匹配的仿真项目</p>
+                    <p className="text-sm font-medium">暂无匹配的仿真应用</p>
                     <span className="text-xs text-gray-400">请尝试切换分类或调整搜索关键词</span>
                   </div>
                 ) : (
@@ -1437,7 +1438,7 @@ export default function HomePage() {
                                <button 
                                  onClick={(e) => { e.stopPropagation(); openCopyModal(project); }} 
                                  className="p-2 bg-gray-50 hover:bg-gray-100 rounded-md text-gray-500 hover:text-[#00a0e9] transition-colors shadow-sm border border-gray-100" 
-                                 title="复制项目"
+                                 title="复制应用"
                                >
                                  <Copy size={16} />
                                </button>
@@ -1447,7 +1448,7 @@ export default function HomePage() {
                                  rel="noopener noreferrer"
                                  onClick={(e) => e.stopPropagation()} 
                                  className="p-2 bg-gray-50 hover:bg-[#00a0e9] hover:text-white rounded-md text-gray-500 transition-colors shadow-sm border border-gray-100" 
-                                 title="预览项目详情"
+                                 title="预览应用详情"
                                >
                                  <Eye size={16} />
                                </a>
@@ -1463,7 +1464,7 @@ export default function HomePage() {
               {/* Project Pagination Footer */}
               <div className="shrink-0 pt-3.5 border-t border-gray-100 flex flex-wrap justify-between items-center text-xs text-gray-500 gap-4">
                 <div>
-                  显示第 {(projectCurrentPage - 1) * projectPageSize + (filteredProjects.length > 0 ? 1 : 0)} 到 {Math.min(projectCurrentPage * projectPageSize, filteredProjects.length)} 条，共 <strong className="text-gray-700 font-semibold">{filteredProjects.length}</strong> 个项目
+                  显示第 {(projectCurrentPage - 1) * projectPageSize + (filteredProjects.length > 0 ? 1 : 0)} 到 {Math.min(projectCurrentPage * projectPageSize, filteredProjects.length)} 条，共 <strong className="text-gray-700 font-semibold">{filteredProjects.length}</strong> 个应用
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -1547,25 +1548,25 @@ export default function HomePage() {
           );
         })()}
         
-        {/* Copy Project Modal */}
+        {/* Copy Application Modal */}
         {isCopyModalOpen && (
           <div className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center backdrop-blur-sm">
             <div className="bg-white rounded-xl shadow-2xl w-[400px] overflow-hidden flex flex-col">
               <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                <h3 className="font-bold text-gray-800 text-lg">复制项目</h3>
+                <h3 className="font-bold text-gray-800 text-lg">复制应用</h3>
                 <button onClick={() => setIsCopyModalOpen(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
                   <X size={20} />
                 </button>
               </div>
               <div className="p-6 flex flex-col gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">新项目名称</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">新应用名称</label>
                   <input 
                     type="text" 
                     value={copyProjectName}
                     onChange={(e) => setCopyProjectName(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#00a0e9] focus:border-[#00a0e9] transition-colors"
-                    placeholder="请输入项目名称"
+                    placeholder="请输入应用名称"
                     autoFocus
                   />
                 </div>
@@ -2092,9 +2093,9 @@ export default function HomePage() {
 
               {/* Modal Title & Stage Description */}
               <h3 className="text-lg font-bold text-gray-900 mb-1">
-                {creationStage === 'creating_project' && '正在创建仿真项目...'}
+                {creationStage === 'creating_project' && '正在创建仿真应用...'}
                 {creationStage === 'adding_devices' && '仿真设备初始化与加入中...'}
-                {creationStage === 'done' && '仿真项目创建完成！'}
+                {creationStage === 'done' && '仿真应用创建完成！'}
               </h3>
 
               <p className="text-xs text-gray-500 max-w-xs mb-4">

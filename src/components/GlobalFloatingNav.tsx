@@ -27,8 +27,8 @@ export default function GlobalFloatingNav() {
     }
   };
 
-  const isHomeDevices = location.pathname === '/' && (!location.state || location.state.activeTab !== '仿真项目大厅');
-  const isHomeProjects = location.pathname === '/' && location.state?.activeTab === '仿真项目大厅';
+  const isHomeDevices = location.pathname === '/' && (!location.state || (location.state.activeTab !== '仿真应用中心' && location.state.activeTab !== '仿真应用大厅' && location.state.activeTab !== '仿真项目大厅'));
+  const isHomeProjects = location.pathname === '/' && (location.state?.activeTab === '仿真应用中心' || location.state?.activeTab === '仿真应用大厅' || location.state?.activeTab === '仿真项目大厅');
   const isConsole = location.pathname.startsWith('/console');
 
   return (
@@ -112,9 +112,9 @@ export default function GlobalFloatingNav() {
             {isHomeDevices && <span className="w-1.5 h-1.5 rounded-full bg-[#1890ff]"></span>}
           </button>
 
-          {/* 2. 仿真项目大厅 */}
+          {/* 2. 仿真应用中心 */}
           <button
-            onClick={() => handleNavigate('/', '仿真项目大厅')}
+            onClick={() => handleNavigate('/', '仿真应用中心')}
             className={`w-full px-3 py-2.5 rounded-xl transition-all flex items-center justify-between cursor-pointer ${
               isHomeProjects 
                 ? 'bg-blue-50 text-[#1890ff] font-bold shadow-2xs' 
@@ -123,7 +123,7 @@ export default function GlobalFloatingNav() {
           >
             <div className="flex items-center gap-2.5">
               <FolderKanban size={15} className={isHomeProjects ? 'text-[#1890ff]' : 'text-gray-400'} />
-              <span>仿真项目大厅</span>
+              <span>仿真应用中心</span>
             </div>
             {isHomeProjects && <span className="w-1.5 h-1.5 rounded-full bg-[#1890ff]"></span>}
           </button>

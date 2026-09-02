@@ -9,7 +9,7 @@ export default function PrototypeNav() {
   const routes = [
     { path: '/', name: '仿真设备页面 (首页)' },
     { path: '/console', name: '控制台页面' },
-    { path: '/design', name: '仿真项目设计页面' },
+    { path: '/design', name: '仿真应用设计页面' },
   ];
 
   return (

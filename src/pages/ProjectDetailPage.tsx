@@ -51,7 +51,7 @@ const MOCK_PROJECT_DETAILS: Record<number, any> = {
     id: 2,
     name: '智能家居全屋控制中心',
     category: '智慧家居',
-    type: '个人应用',
+    type: '自定义应用',
     publisher: '李**',
     time: '2025-10-09 14:20:12',
     views: 890,
@@ -86,7 +86,7 @@ const getProjectData = (id: number) => {
   if (MOCK_PROJECT_DETAILS[id]) return MOCK_PROJECT_DETAILS[id];
   return {
     id,
-    name: `仿真实验工程项目 #${id}`,
+    name: `仿真实验工程应用 #${id}`,
     category: '智慧物联网',
     type: '系统应用',
     publisher: '管理员',
@@ -136,7 +136,7 @@ export default function ProjectDetailPage() {
     hum: '25.2 ℃'
   });
 
-  // Copy Project Modal
+  // Copy Application Modal
   const [isCopyProjectModalOpen, setIsCopyProjectModalOpen] = useState(false);
   const [copyProjectName, setCopyProjectName] = useState('');
 
@@ -182,10 +182,10 @@ export default function ProjectDetailPage() {
 
   const handleConfirmCopyProject = () => {
     if (!copyProjectName.trim()) {
-      alert('请输入项目名称');
+      alert('请输入应用名称');
       return;
     }
-    alert(`项目复制成功！"${copyProjectName}" 已添加至您的控制台个人空间。`);
+    alert(`应用复制成功！"${copyProjectName}" 已添加至您的全部应用。`);
     setIsCopyProjectModalOpen(false);
   };
 
@@ -215,7 +215,7 @@ export default function ProjectDetailPage() {
               <img src="/logo.png" alt="XLab" className="h-8 object-contain" />
             </Link>
             <span className="text-sm font-bold text-gray-700 hidden md:inline">
-              / 仿真项目详情
+              / 仿真应用详情
             </span>
           </div>
 
@@ -377,13 +377,13 @@ export default function ProjectDetailPage() {
                 </span>
               </div>
 
-              {/* Toolbar Action Buttons (Copy Project & Start/Stop Experiment) */}
+              {/* Toolbar Action Buttons (Copy Application & Start/Stop Experiment) */}
               <div className="flex items-center gap-3">
                 <button 
                   onClick={handleOpenCopyProject}
                   className="flex items-center gap-1.5 px-4 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 font-semibold text-sm rounded-xl border border-purple-200 transition-all shadow-2xs"
                 >
-                  <Copy size={15} /> 复制整个项目
+                  <Copy size={15} /> 复制整个应用
                 </button>
 
                 <button
@@ -551,14 +551,14 @@ export default function ProjectDetailPage() {
 
       </main>
 
-      {/* Copy Project Modal */}
+      {/* Copy Application Modal */}
       {isCopyProjectModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl w-[440px] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
               <h3 className="font-bold text-gray-800 text-base flex items-center gap-2">
                 <Copy size={18} className="text-[#00a0e9]" />
-                复制整个仿真工程项目
+                复制整个仿真应用
               </h3>
               <button onClick={() => setIsCopyProjectModalOpen(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
                 <X size={18} />
@@ -566,16 +566,16 @@ export default function ProjectDetailPage() {
             </div>
             <div className="p-6 flex flex-col gap-4">
               <div className="p-3 bg-blue-50/50 rounded-xl border border-blue-100 text-xs text-blue-800">
-                将克隆本项目的所有 <strong>2D 拓扑布局、连线网络、硬件参数与控制策略</strong> 到您的个人控制台空间。
+                将克隆本应用的所有 <strong>2D 拓扑布局、连线网络、硬件参数与控制策略</strong> 到您的全部应用空间。
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">新工程项目名称</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">新应用名称</label>
                 <input 
                   type="text" 
                   value={copyProjectName}
                   onChange={(e) => setCopyProjectName(e.target.value)}
                   className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl shadow-xs focus:outline-none focus:ring-2 focus:ring-[#00a0e9] focus:border-[#00a0e9] transition-colors text-sm"
-                  placeholder="请输入新项目名称"
+                  placeholder="请输入新应用名称"
                   autoFocus
                 />
               </div>
@@ -591,7 +591,7 @@ export default function ProjectDetailPage() {
                 onClick={handleConfirmCopyProject}
                 className="px-5 py-2 bg-[#00a0e9] text-white rounded-xl text-sm font-bold hover:bg-[#008cc9] shadow-xs transition-colors"
               >
-                确认复制到个人空间
+                确认复制到全部应用
               </button>
             </div>
           </div>

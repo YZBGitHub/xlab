@@ -300,7 +300,7 @@ export default function DesignPage() {
 
           {/* Primary Navigation */}
           <nav className="flex items-center gap-12 absolute left-1/2 -translate-x-1/2 h-full">
-            {['仿真设备中心', '仿真项目大厅'].map(nav => (
+            {['仿真设备中心', '仿真应用中心'].map(nav => (
               <button
                 key={nav}
                 onClick={() => handleNavClick(nav)}
