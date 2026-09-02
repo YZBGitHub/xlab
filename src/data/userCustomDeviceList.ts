@@ -5,7 +5,7 @@ export interface UserCustomDeviceItem {
   userName: string;
   image: string;
   type: '传感器' | '执行器' | '网关' | '继电器';
-  protocol: 'Modbus RTU' | 'Modbus TCP' | 'Zigbee' | 'MQTT' | 'Lora' | '模拟量' | '开关量' | '其他';
+  protocol: 'Modbus RTU' | 'Modbus TCP' | 'Zigbee' | 'MQTT' | 'Lora' | '模拟量' | '数字量' | '开关量' | '其他';
   power: string;
   publishStatus: 'published' | 'unpublished' | 'banned'; // published: 已发布, unpublished: 未发布, banned: 已下架
   publishToSimulation: boolean;
@@ -15,10 +15,34 @@ export interface UserCustomDeviceItem {
   description?: string;
   modbusAttrs?: Array<{
     name: string;
+    key?: string; // 英文标识，仅支持英文和下划线，长度 50 以内
     unit: string;
     range?: string;
     precision?: string;
+    funcCode?: string;
+    startAddr?: string;
+    dataLen?: string;
+    formula?: string;
   }>;
+  analogConfig?: {
+    name?: string; // 属性中文名称
+    key?: string;  // 英文标识，仅支持英文和下划线，长度 50 以内
+    type: string;
+    range: string;
+    unit: string;
+    min: string;
+    max: string;
+    precision: string;
+  };
+  digitalConfig?: {
+    propertyName: string;
+    propertyKey?: string; // 英文标识，仅支持英文和下划线，长度 50 以内
+    key?: string;
+    zeroLabel: string;
+    oneLabel: string;
+    defaultVal?: '0' | '1';
+    triggerMode?: string;
+  };
 }
 
 export const initialUserCustomDevices: UserCustomDeviceItem[] = [
@@ -37,8 +61,8 @@ export const initialUserCustomDevices: UserCustomDeviceItem[] = [
     source: '用户',
     description: '工业级大棚与机房高精度RS485温湿度一体变送器',
     modbusAttrs: [
-      { name: '温度', unit: '℃', range: '-40-80', precision: '1' },
-      { name: '湿度', unit: '%RH', range: '0-100', precision: '1' }
+      { name: '温度', key: 'temperature', unit: '℃', range: '-40-80', precision: '1' },
+      { name: '湿度', key: 'humidity', unit: '%RH', range: '0-100', precision: '1' }
     ]
   },
   {
@@ -115,7 +139,17 @@ export const initialUserCustomDevices: UserCustomDeviceItem[] = [
     publishToSimulation: false,
     createTime: '2026-07-15 15:50:20',
     source: '用户',
-    description: '标准0-10V模拟电压输出工业光照强度计'
+    description: '标准0-10V模拟电压输出工业光照强度计',
+    analogConfig: {
+      name: '光照度',
+      key: 'light_intensity',
+      type: '电压',
+      range: '0-10',
+      unit: 'Lux',
+      min: '0',
+      max: '200000',
+      precision: '0'
+    }
   },
   {
     id: 'uc_1007',

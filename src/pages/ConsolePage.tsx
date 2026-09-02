@@ -5,7 +5,6 @@ import DeviceMaterialManager from "../components/DeviceMaterialManager";
 import SystemSimDeviceManager from "../components/SystemSimDeviceManager";
 import UserAppManager from "../components/UserAppManager";
 import UserCustomDeviceManager from "../components/UserCustomDeviceManager";
-import TagResourceManager from "../components/TagResourceManager";
 import { 
   LayoutGrid, List, Settings, Search, MoreHorizontal, Pen, 
   ChevronDown, ChevronRight, ChevronUp, UserCircle2, Box, X, UploadCloud, 
@@ -17,55 +16,20 @@ import { getDeviceImageUrl } from '../utils/deviceImages';
 import { getDeviceProtocolInfo } from '../utils/deviceProtocolHelper';
 import { useHeader } from '../context/HeaderContext';
 
-const projects = [
-  { 
-    id: 1, 
-    name: '智慧农业2D虚拟仿真', 
-    status: '已发布', 
-    date: '2025-10-10 22:14:56', 
-    tag: '智慧农业',
-    image: 'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=600&h=380&fit=crop'
-  },
-  { 
-    id: 2, 
-    name: '智慧家居2D仿真', 
-    status: '已发布', 
-    date: '2025-10-10 23:40:28', 
-    tag: '智慧家居',
-    image: 'https://images.unsplash.com/photo-1558002038-1055907df827?w=600&h=380&fit=crop'
-  },
-  { 
-    id: 3, 
-    name: '家居2D仿真【娱乐影音】', 
-    status: '已发布', 
-    date: '2025-10-11 00:01:21', 
-    tag: '智慧家居',
-    image: 'https://images.unsplash.com/photo-1593784991095-a205069470b6?w=600&h=380&fit=crop'
-  },
-  { 
-    id: 4, 
-    name: '智慧安防2D仿真', 
-    status: '已发布', 
-    date: '2025-10-11 00:01:21', 
-    tag: '智慧安防',
-    image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=600&h=380&fit=crop'
-  },
-  { 
-    id: 5, 
-    name: '交通2D仿真【隧道】', 
-    status: '已发布', 
-    date: '2025-10-11 00:11:21', 
-    tag: '智慧交通',
-    image: 'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&h=380&fit=crop'
-  },
-];
+import { 
+  initialUserProjects, 
+  UserProjectItem, 
+  STORAGE_KEY_USER_PROJECTS, 
+  STORAGE_KEY_CUSTOM_DEVICES, 
+  CURRENT_USER 
+} from '../data/userProjectList';
 
 const initialCustomDevices = [
-  { id: 'custom_1', name: '自定义温湿度传感器', image: '/device/RS485_Humiture_Thumbnail.png', type: '传感器', protocol: 'Modbus RTU', date: '2026-08-12 10:00', power: 'DC 12V / 24V', publishToSimulation: true },
-  { id: 'custom_2', name: '智能灌溉阀门', image: '/device/RS485_WaterPump_Thumbnail.png', type: '执行器', protocol: 'Zigbee', date: '2026-08-11 14:30', power: 'AC 220V', publishToSimulation: true },
-  { id: 'custom_3', name: '边缘计算网关V2', image: '/device/UsrG771Gateway_Thumbnail.png', type: '网关', protocol: 'MQTT', date: '2026-08-10 09:15', power: 'DC 12V', publishToSimulation: false },
-  { id: 'custom_4', name: '复合传感器模块A', image: '/device/NewLabCommon_Thumbnail.png', type: '传感器', protocol: 'Lora', date: '2026-07-25 11:20', power: 'DC 5V', publishToSimulation: false },
-  { id: 'custom_5', name: '大功率工业继电器', image: '/device/Relay_DINRailCircuitBreaker1P_Thumbnail.png', type: '继电器', protocol: 'Modbus TCP', date: '2026-07-18 16:40', power: 'AC 380V', publishToSimulation: true },
+  { id: 'custom_1', name: '自定义温湿度传感器', image: '/device/RS485_Humiture_Thumbnail.png', type: '传感器', protocol: 'Modbus RTU', date: '2026-08-12 10:00', power: 'DC 12V / 24V', publishToSimulation: true, creator: '杨振邦' },
+  { id: 'custom_2', name: '智能灌溉阀门', image: '/device/RS485_WaterPump_Thumbnail.png', type: '执行器', protocol: 'Zigbee', date: '2026-08-11 14:30', power: 'AC 220V', publishToSimulation: true, creator: '杨振邦' },
+  { id: 'custom_3', name: '边缘计算网关V2', image: '/device/UsrG771Gateway_Thumbnail.png', type: '网关', protocol: 'MQTT', date: '2026-08-10 09:15', power: 'DC 12V', publishToSimulation: false, creator: '杨振邦' },
+  { id: 'custom_4', name: '复合传感器模块A', image: '/device/NewLabCommon_Thumbnail.png', type: '传感器', protocol: 'Lora', date: '2026-07-25 11:20', power: 'DC 5V', publishToSimulation: false, creator: '杨振邦' },
+  { id: 'custom_5', name: '大功率工业继电器', image: '/device/Relay_DINRailCircuitBreaker1P_Thumbnail.png', type: '继电器', protocol: 'Modbus TCP', date: '2026-07-18 16:40', power: 'AC 380V', publishToSimulation: true, creator: '杨振邦' },
 ];
 
 export default function ConsolePage() {
@@ -81,10 +45,59 @@ export default function ConsolePage() {
   const navigate = useNavigate();
   const { isHeaderVisible, hideHeader } = useHeader();
 
-  const [customDeviceList, setCustomDeviceList] = useState(initialCustomDevices);
+  // 自定义项目（全部应用）管理与本地持久化
+  const [projectList, setProjectList] = useState<UserProjectItem[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_USER_PROJECTS);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return initialUserProjects;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_USER_PROJECTS, JSON.stringify(projectList));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [projectList]);
+
+  // 自定义设备管理与本地持久化
+  const [customDeviceList, setCustomDeviceList] = useState<any[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_CUSTOM_DEVICES);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return initialCustomDevices;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_CUSTOM_DEVICES, JSON.stringify(customDeviceList));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [customDeviceList]);
+
   const [isAddDeviceModalOpen, setIsAddDeviceModalOpen] = useState(false);
   const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
   const addMenuRef = useRef<HTMLDivElement>(null);
+
+  // 新增应用弹窗状态
+  const [isAddProjectModalOpen, setIsAddProjectModalOpen] = useState(false);
+  const [newProjectName, setNewProjectName] = useState('');
+  const [newProjectCategory, setNewProjectCategory] = useState('智慧农业');
+  const [newProjectPublish, setNewProjectPublish] = useState(true);
 
   // Edit Device Modal State
   const [editingDevice, setEditingDevice] = useState<any>(null);
@@ -112,7 +125,8 @@ export default function ConsolePage() {
             power: savedData.powerType === '交流' ? (savedData.acVoltage || 'AC 220V') : (savedData.dcVoltage || 'DC 12V'),
             publishToSimulation: savedData.publishToSimulation ?? d.publishToSimulation,
             modbusAttrs: savedData.modbusAttrs || d.modbusAttrs,
-            analogConfig: savedData.analogConfig || d.analogConfig
+            analogConfig: savedData.analogConfig || d.analogConfig,
+            digitalConfig: savedData.digitalConfig || d.digitalConfig
           };
         }
         return d;
@@ -120,6 +134,7 @@ export default function ConsolePage() {
     }
   };
 
+  // 切换自定义设备发布状态
   const handleTogglePublish = (deviceId: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     setCustomDeviceList(prev => prev.map(d => {
@@ -129,6 +144,51 @@ export default function ConsolePage() {
       }
       return d;
     }));
+  };
+
+  // 切换自定义项目发布状态
+  const handleToggleProjectPublish = (projectId: string | number, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setProjectList(prev => prev.map(p => {
+      if (p.id === projectId) {
+        const nextStatus = p.status === '已发布' ? '未发布' : '已发布';
+        return { ...p, status: nextStatus };
+      }
+      return p;
+    }));
+  };
+
+  // 删除自定义项目
+  const handleDeleteProject = (projectId: string | number, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (window.confirm('确定要删除该应用吗？删除后将无法恢复。')) {
+      setProjectList(prev => prev.filter(p => p.id !== projectId));
+    }
+  };
+
+  // 确认创建新自定义项目
+  const handleConfirmCreateProject = () => {
+    if (!newProjectName.trim()) {
+      alert('请输入应用名称');
+      return;
+    }
+    const created: UserProjectItem = {
+      id: Date.now(),
+      name: newProjectName.trim(),
+      status: newProjectPublish ? '已发布' : '未发布',
+      date: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      tag: newProjectCategory,
+      category: newProjectCategory,
+      type: '自定义应用',
+      publisher: CURRENT_USER.maskedName,
+      creator: CURRENT_USER.name,
+      views: 0,
+      image: 'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=600&h=380&fit=crop'
+    };
+    setProjectList(prev => [created, ...prev]);
+    setIsAddProjectModalOpen(false);
+    setNewProjectName('');
+    alert(`应用创建成功！${newProjectPublish ? '已同步发布至仿真应用中心。' : '当前为未发布草稿状态。'}`);
   };
 
   const handleCopyHex = (hex: string) => {
@@ -165,6 +225,7 @@ export default function ConsolePage() {
     const newDevice = {
       ...deviceToCopy,
       id: `custom_${Date.now()}`,
+            creator: CURRENT_USER.name,
       name: copyDeviceName.trim(),
       date: new Date().toISOString().replace('T', ' ').substring(0, 16)
     };
@@ -194,10 +255,10 @@ export default function ConsolePage() {
     navigate('/', { state: { activeTab: nav } });
   };
 
-  const filteredProjects = projects.filter(p => {
+  const filteredProjects = projectList.filter(p => {
     if (!searchKeyword.trim()) return true;
     const q = searchKeyword.trim().toLowerCase();
-    return p.name.toLowerCase().includes(q) || p.tag.toLowerCase().includes(q);
+    return p.name.toLowerCase().includes(q) || (p.tag || '').toLowerCase().includes(q);
   });
 
   const hasCustomDeviceFilter = searchKeyword.trim() !== '' || selectedDeviceType !== 'all' || selectedDeviceProtocol !== 'all' || selectedPublishStatus !== 'all';
@@ -228,6 +289,8 @@ export default function ConsolePage() {
         if (!p.includes('mqtt')) return false;
       } else if (filterP === 'lora') {
         if (!p.includes('lora')) return false;
+      } else if (filterP === '数字量') {
+        if (!d.protocol?.includes('数字') && !d.digitalConfig) return false;
       } else if (filterP === '模拟量') {
         if (!d.protocol?.includes('模拟')) return false;
       } else if (filterP === '其他') {
@@ -359,12 +422,6 @@ export default function ConsolePage() {
                   >
                     <span>设备素材管理</span>
                   </div>
-                  <div 
-                    onClick={() => setActiveMenu('标签资源管理')}
-                    className={`px-12 py-2 text-sm cursor-pointer font-medium transition-colors border-r-2 flex items-center justify-between ${activeMenu === '标签资源管理' ? 'bg-blue-50/70 text-blue-600 border-blue-600 font-semibold' : 'text-gray-600 border-transparent hover:bg-gray-50'}`}
-                  >
-                    <span>标签资源管理</span>
-                  </div>
                 </div>
               )}
             </div>
@@ -380,8 +437,6 @@ export default function ConsolePage() {
           <SystemSimDeviceManager />
         ) : activeMenu === '设备素材管理' ? (
           <DeviceMaterialManager createModalTrigger={createMaterialTrigger} />
-        ) : activeMenu === '标签资源管理' ? (
-          <TagResourceManager />
         ) : (
           <main className="flex-1 flex flex-col bg-[#f0f2f5] overflow-y-auto">
             <div className="p-6 pb-2 flex-grow">
@@ -392,7 +447,7 @@ export default function ConsolePage() {
                        if (activeMenu === '自定义设备') {
                          setIsAddMenuOpen(!isAddMenuOpen);
                        } else {
-                         alert('新增应用功能正在建设中...');
+                         setIsAddProjectModalOpen(true);
                        }
                      }}
                      className="bg-blue-500 hover:bg-blue-600 text-white px-5 py-2 rounded text-sm flex items-center gap-1 shadow-sm transition-colors font-medium"
@@ -461,6 +516,7 @@ export default function ConsolePage() {
                             <option value="MQTT">MQTT</option>
                             <option value="Lora">Lora</option>
                             <option value="模拟量">模拟量</option>
+                            <option value="数字量">数字量</option>
                             <option value="其他">其他</option>
                           </select>
                         </div>
@@ -581,10 +637,19 @@ export default function ConsolePage() {
                         <div className="text-[11px] text-gray-400 font-mono">{p.date}</div>
                         
                         <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-50">
-                          <div className="flex items-center gap-1.5 text-xs text-green-600 font-medium">
-                            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
+                          <button
+                            type="button"
+                            onClick={(e) => handleToggleProjectPublish(p.id, e)}
+                            className={`flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded cursor-pointer transition-colors ${
+                              p.status === "已发布" 
+                                ? "text-green-600 bg-green-50 hover:bg-green-100 border border-green-200" 
+                                : "text-gray-500 bg-gray-100 hover:bg-gray-200 border border-gray-200"
+                            }`}
+                            title={p.status === "已发布" ? "已发布至仿真应用中心（点击下架）" : "未发布 (仅私有，点击发布至仿真应用中心)"}
+                          >
+                            <div className={`w-1.5 h-1.5 rounded-full ${p.status === "已发布" ? "bg-green-500 animate-pulse" : "bg-gray-400"}`}></div>
                             {p.status}
-                          </div>
+                          </button>
                           <div className="flex items-center gap-3.5 text-gray-400">
                             <Pen size={14} className="cursor-pointer hover:text-blue-500 transition-colors" />
                             <div className="relative group/menu">
@@ -594,8 +659,18 @@ export default function ConsolePage() {
                               <div className="absolute right-0 top-full mt-1 w-24 bg-white border border-gray-200 rounded shadow-lg opacity-0 invisible group-hover/menu:opacity-100 group-hover/menu:visible transition-all z-20 overflow-hidden">
                                 <div className="py-1">
                                   <Link to="/design" className="px-3 py-1.5 text-xs text-blue-600 hover:bg-blue-50 cursor-pointer flex items-center gap-2 block w-full text-left">编辑</Link>
-                                  <div className="px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50 cursor-pointer flex items-center gap-2">预览</div>
-                                  <div className="px-3 py-1.5 text-xs text-red-500 hover:bg-red-50 cursor-pointer flex items-center gap-2">删除</div>
+                                  <div 
+                                    onClick={(e) => handleToggleProjectPublish(p.id, e)}
+                                    className="px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50 cursor-pointer flex items-center gap-2"
+                                  >
+                                    {p.status === "已发布" ? "取消发布" : "发布至大厅"}
+                                  </div>
+                                  <div 
+                                    onClick={(e) => handleDeleteProject(p.id, e)}
+                                    className="px-3 py-1.5 text-xs text-red-500 hover:bg-red-50 cursor-pointer flex items-center gap-2"
+                                  >
+                                    删除
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -963,7 +1038,7 @@ export default function ConsolePage() {
       {/* Device Detail & High-Res Image Modal (With Protocol Specifications Tab) */}
       {selectedDeviceDetail && (() => {
         const protocolInfo = getDeviceProtocolInfo(selectedDeviceDetail);
-        const hasProtocolTab = protocolInfo.protocolCategory === 'modbus' || protocolInfo.protocolCategory === 'analog';
+        const hasProtocolTab = protocolInfo.protocolCategory === 'modbus' || protocolInfo.protocolCategory === 'analog' || protocolInfo.protocolCategory === 'digital';
 
         return (
           <div className="fixed inset-0 bg-black/65 z-[9999] flex items-center justify-center p-4 sm:p-6 backdrop-blur-sm animate-in fade-in duration-200">
@@ -1191,6 +1266,7 @@ export default function ConsolePage() {
                               <thead className="bg-gray-50/70 border-b border-gray-100 text-gray-500 text-[11px]">
                                 <tr>
                                   <th className="py-2.5 px-3.5 font-semibold">属性名称</th>
+                                  <th className="py-2.5 px-3 font-semibold">英文标识</th>
                                   <th className="py-2.5 px-3 font-semibold">功能码</th>
                                   <th className="py-2.5 px-3 font-semibold">起始地址</th>
                                   <th className="py-2.5 px-3 font-semibold">类型</th>
@@ -1202,6 +1278,7 @@ export default function ConsolePage() {
                                 {protocolInfo.modbusRegisters?.map((reg, idx) => (
                                   <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
                                     <td className="py-2.5 px-3.5 font-medium text-gray-900">{reg.name}</td>
+                                    <td className="py-2.5 px-3 font-mono text-blue-600 font-semibold">{reg.key || '-'}</td>
                                     <td className="py-2.5 px-3 font-mono">
                                       <span className="bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded border border-emerald-200 text-[11px] font-medium">
                                         {reg.functionCode}
@@ -1304,6 +1381,89 @@ export default function ConsolePage() {
                       </div>
                     )}
 
+                    
+                    {/* Sub-view: Digital Protocol */}
+                    {protocolInfo.protocolCategory === 'digital' && protocolInfo.digitalSignal && (
+                      <div className="space-y-5">
+                        <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-2xs space-y-4">
+                          <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+                            <div className="flex items-center gap-2">
+                              <Zap size={16} className="text-blue-500" />
+                              <span className="font-bold text-sm text-gray-800">数字量规格与逻辑电平</span>
+                            </div>
+                            <span className="text-xs bg-blue-50 text-blue-700 font-semibold px-2.5 py-0.5 rounded border border-blue-200">
+                              {protocolInfo.digitalSignal.signalType}
+                            </span>
+                          </div>
+
+                          {/* 属性与触发逻辑 */}
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div className="bg-blue-50/50 rounded-xl p-3.5 border border-blue-100 flex flex-col gap-1">
+                              <span className="text-xs font-semibold text-gray-500">检测属性名称</span>
+                              <span className="text-sm font-bold text-blue-900">{protocolInfo.digitalSignal.propertyName}</span>
+                            </div>
+                            <div className="bg-blue-50/50 rounded-xl p-3.5 border border-blue-100 flex flex-col gap-1">
+                              <span className="text-xs font-semibold text-gray-500">英文标识 (Key)</span>
+                              <span className="font-mono text-sm font-bold text-blue-600">{protocolInfo.digitalSignal.propertyKey || protocolInfo.digitalSignal.key || '-'}</span>
+                            </div>
+                            <div className="bg-blue-50/50 rounded-xl p-3.5 border border-blue-100 flex flex-col gap-1">
+                              <span className="text-xs font-semibold text-gray-500">触发逻辑与电平</span>
+                              <span className="text-sm font-bold text-blue-900">{protocolInfo.digitalSignal.triggerMode}</span>
+                            </div>
+                          </div>
+
+                          {/* 真值状态映射表 */}
+                          <div className="bg-gray-50 rounded-xl p-4 border border-gray-200/80 space-y-3">
+                            <span className="font-bold text-xs text-gray-800 flex items-center gap-1.5">
+                              <CheckCircle2 size={14} className="text-emerald-500" />
+                              数字量 0 / 1 状态对应表 (二值输出)
+                            </span>
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-left text-xs bg-white rounded-lg border border-gray-200 overflow-hidden">
+                                <thead className="bg-gray-100/80 text-gray-600 font-semibold text-[11px]">
+                                  <tr>
+                                    <th className="py-2 px-3">电平状态</th>
+                                    <th className="py-2 px-3">逻辑值</th>
+                                    <th className="py-2 px-3">状态物理含义</th>
+                                    <th className="py-2 px-3">典型应用场景</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                  {protocolInfo.digitalSignal.stateTable.map((row, idx) => (
+                                    <tr key={idx} className="hover:bg-blue-50/20">
+                                      <td className="py-2 px-3 font-mono font-medium text-gray-700">{row.level}</td>
+                                      <td className="py-2 px-3 font-mono font-bold text-blue-600">{row.logicVal}</td>
+                                      <td className="py-2 px-3 font-bold text-emerald-700">{row.stateMeaning}</td>
+                                      <td className="py-2 px-3 text-gray-500">{idx === 0 ? '静态待机/正常状态' : '传感器侦测触发/告警状态'}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+
+                          {/* 物理端口定义 */}
+                          <div className="bg-gray-50 rounded-xl p-4 border border-gray-200/80 space-y-2.5">
+                            <span className="font-bold text-xs text-gray-800 flex items-center gap-1.5">
+                              <Terminal size={14} className="text-purple-500" />
+                              默认接线端子定义 (三线制)
+                            </span>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                              {protocolInfo.digitalSignal.pins.map((pin, idx) => (
+                                <div key={idx} className="bg-white p-3 rounded-lg border border-gray-200 flex flex-col gap-1 shadow-2xs">
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-mono font-bold text-xs text-purple-700 uppercase">{pin.pin}</span>
+                                    <span className="text-[10px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded border border-purple-100 font-medium">{pin.name}</span>
+                                  </div>
+                                  <span className="text-[11px] text-gray-500">{pin.desc}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Sub-view: Analog Protocol */}
                     {protocolInfo.protocolCategory === 'analog' && protocolInfo.analogFormula && (
                       <div className="space-y-5">
@@ -1316,6 +1476,18 @@ export default function ConsolePage() {
                             <span className="text-xs bg-amber-50 text-amber-700 font-semibold px-2.5 py-0.5 rounded border border-amber-200">
                               {protocolInfo.analogFormula.signalType}
                             </span>
+                          </div>
+
+                          {/* 模拟量属性与英文标识 */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="bg-amber-50/50 rounded-xl p-3.5 border border-amber-100 flex flex-col gap-1">
+                              <span className="text-xs font-semibold text-gray-500">物理量属性</span>
+                              <span className="text-sm font-bold text-amber-900">{protocolInfo.analogFormula.name || '采集物理量'}</span>
+                            </div>
+                            <div className="bg-amber-50/50 rounded-xl p-3.5 border border-amber-100 flex flex-col gap-1">
+                              <span className="text-xs font-semibold text-gray-500">英文标识 (Key)</span>
+                              <span className="font-mono text-sm font-bold text-amber-800">{protocolInfo.analogFormula.key || 'analog_value'}</span>
+                            </div>
                           </div>
 
                           {/* Formula Math Card */}
@@ -1397,6 +1569,80 @@ export default function ConsolePage() {
         initialData={editingDevice}
         onSave={handleSaveEditDevice}
       />
+
+      {/* Add Project Modal */}
+      {isAddProjectModalOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-gray-100">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+              <h3 className="font-bold text-gray-800 text-base flex items-center gap-2">
+                <Plus size={18} className="text-blue-600" />
+                新增自定义仿真应用
+              </h3>
+              <button 
+                onClick={() => setIsAddProjectModalOpen(false)}
+                className="p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5">应用名称 <span className="text-red-500">*</span></label>
+                <input 
+                  type="text" 
+                  value={newProjectName}
+                  onChange={(e) => setNewProjectName(e.target.value)}
+                  placeholder="例如：智慧农业光照与灌溉仿真" 
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5">所属类别</label>
+                <select 
+                  value={newProjectCategory}
+                  onChange={(e) => setNewProjectCategory(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                >
+                  <option value="智慧农业">智慧农业</option>
+                  <option value="智慧家居">智慧家居</option>
+                  <option value="智慧交通">智慧交通</option>
+                  <option value="智慧安防">智慧安防</option>
+                </select>
+              </div>
+              <div className="pt-2 border-t border-gray-100">
+                <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                  <input 
+                    type="checkbox" 
+                    checked={newProjectPublish}
+                    onChange={(e) => setNewProjectPublish(e.target.checked)}
+                    className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                  />
+                  <div className="flex flex-col">
+                    <span className="text-xs font-semibold text-gray-700">同步发布至仿真应用中心</span>
+                    <span className="text-[11px] text-gray-400">勾选后该应用将显示在仿真应用中心供您在线运行预览</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+            <div className="px-6 py-3.5 bg-gray-50 border-t border-gray-100 flex items-center justify-end gap-2.5">
+              <button 
+                onClick={() => setIsAddProjectModalOpen(false)}
+                className="px-4 py-1.5 text-xs text-gray-600 hover:bg-gray-200 rounded-lg transition-colors font-medium cursor-pointer"
+              >
+                取消
+              </button>
+              <button 
+                onClick={handleConfirmCreateProject}
+                className="px-5 py-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-colors font-medium cursor-pointer"
+              >
+                确认创建
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

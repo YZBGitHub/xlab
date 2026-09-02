@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, UploadCloud, Check, Plus, Edit2, Trash2, Shield, Settings, Info, Zap } from 'lucide-react';
+import { X, UploadCloud, Check, Plus, Edit2, Trash2, Shield, Settings, Info, Zap, Layers, Play, Square, CheckCircle2, Eye, Terminal } from 'lucide-react';
 
 interface Props {
   isOpen: boolean;
@@ -33,9 +33,10 @@ export default function AddCustomDeviceModal({ isOpen, onClose, initialData, onS
     // Sensor
     protocol: 'ModbusRTU',
     modbusAttrs: [
-      { name: '温度', unit: '℃', range: '0-100', funcCode: '0x03', startAddr: '0004', dataLen: '1', formula: 'R0=val/10' }
+      { name: '温度', key: 'temperature', unit: '℃', range: '0-100', funcCode: '0x03', startAddr: '0004', dataLen: '1', formula: 'R0=val/10' }
     ],
-    analogConfig: { type: '电压', range: '0-24', unit: 'V', min: '0', max: '10', precision: '0' },
+    analogConfig: { name: '物理量采集', key: 'analog_value', type: '电压', range: '0-24', unit: 'V', min: '0', max: '10', precision: '0' },
+    digitalConfig: { propertyName: '人体感应', propertyKey: 'human_presence', key: 'human_presence', zeroLabel: '无人', oneLabel: '有人', defaultVal: '0', triggerMode: '高电平有效 (Active High)' },
     
     // Publish Option
     publishToSimulation: false
@@ -59,9 +60,10 @@ export default function AddCustomDeviceModal({ isOpen, onClose, initialData, onS
           offImage: initialData.offImage || null,
           protocol: initialData.protocol === 'Modbus RTU' ? 'ModbusRTU' : (initialData.protocol || 'ModbusRTU'),
           modbusAttrs: initialData.modbusAttrs || [
-            { name: '温度', unit: '℃', range: '0-100', funcCode: '0x03', startAddr: '0004', dataLen: '1', formula: 'R0=val/10' }
+            { name: '温度', key: 'temperature', unit: '℃', range: '0-100', funcCode: '0x03', startAddr: '0004', dataLen: '1', formula: 'R0=val/10' }
           ],
-          analogConfig: initialData.analogConfig || { type: '电压', range: '0-24', unit: 'V', min: '0', max: '10', precision: '0' },
+          analogConfig: initialData.analogConfig || { name: '物理量采集', key: 'analog_value', type: '电压', range: '0-24', unit: 'V', min: '0', max: '10', precision: '0' },
+          digitalConfig: initialData.digitalConfig || { propertyName: '人体感应', propertyKey: 'human_presence', key: 'human_presence', zeroLabel: '无人', oneLabel: '有人', defaultVal: '0', triggerMode: '高电平有效 (Active High)' },
           publishToSimulation: initialData.publishToSimulation || false
         });
       } else {
@@ -79,9 +81,10 @@ export default function AddCustomDeviceModal({ isOpen, onClose, initialData, onS
           offImage: null,
           protocol: 'ModbusRTU',
           modbusAttrs: [
-            { name: '温度', unit: '℃', range: '0-100', funcCode: '0x03', startAddr: '0004', dataLen: '1', formula: 'R0=val/10' }
+            { name: '温度', key: 'temperature', unit: '℃', range: '0-100', funcCode: '0x03', startAddr: '0004', dataLen: '1', formula: 'R0=val/10' }
           ],
-          analogConfig: { type: '电压', range: '0-24', unit: 'V', min: '0', max: '10', precision: '0' },
+          analogConfig: { name: '物理量采集', key: 'analog_value', type: '电压', range: '0-24', unit: 'V', min: '0', max: '10', precision: '0' },
+          digitalConfig: { propertyName: '人体感应', propertyKey: 'human_presence', key: 'human_presence', zeroLabel: '无人', oneLabel: '有人', defaultVal: '0', triggerMode: '高电平有效 (Active High)' },
           publishToSimulation: false
         });
       }
@@ -113,7 +116,7 @@ export default function AddCustomDeviceModal({ isOpen, onClose, initialData, onS
 
   return (
     <div className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center backdrop-blur-sm">
-      <div className="bg-white rounded-xl shadow-2xl w-[900px] h-[85vh] max-h-[850px] flex flex-col overflow-hidden">
+      <div className="bg-white rounded-xl shadow-2xl w-[960px] h-[88vh] max-h-[880px] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 shrink-0">
           <h3 className="font-bold text-gray-800 text-lg">
@@ -444,7 +447,7 @@ function Step4ActuatorStatus({ data, update }: any) {
 function Step3SensorProtocol({ data, update }: any) {
   const [showAttrForm, setShowAttrForm] = useState(false);
   const [editingIndex, setEditingIndex] = useState(-1);
-  const defaultAttr = { name: '', unit: '', precision: '0', rangeMin: '', rangeMax: '', funcCode: '', startAddr: '', dataLen: '', formula: '' };
+  const defaultAttr = { name: '', key: '', unit: '', precision: '0', rangeMin: '', rangeMax: '', funcCode: '', startAddr: '', dataLen: '', formula: '' };
   const [attrForm, setAttrForm] = useState(defaultAttr);
 
   const isModbus = data.protocol === 'ModbusRTU';
@@ -485,9 +488,17 @@ function Step3SensorProtocol({ data, update }: any) {
   };
 
   const saveAttr = () => {
-    if (!attrForm.name) return;
+    if (!attrForm.name || !attrForm.name.trim()) {
+      alert('请输入属性名称！');
+      return;
+    }
+    const cleanKey = (attrForm.key || '').trim().replace(/[^a-zA-Z_]/g, '').slice(0, 50);
+    if (!cleanKey) {
+      alert('请输入英文标识，支持英文和下划线，50字符以内！');
+      return;
+    }
     const newAttrs = [...currentAttrs];
-    let finalAttr = { name: attrForm.name, unit: attrForm.unit, precision: attrForm.precision || '0' };
+    let finalAttr = { name: attrForm.name.trim(), key: cleanKey, unit: attrForm.unit, precision: attrForm.precision || '0' };
     
     if (isModbus) {
       finalAttr = {
@@ -516,7 +527,7 @@ function Step3SensorProtocol({ data, update }: any) {
       <div>
         <div className="text-sm font-bold text-gray-700 mb-3">通讯协议</div>
         <div className="flex gap-4 flex-wrap mb-2">
-          {['ModbusRTU', '模拟量', 'Zigbee'].map(p => (
+          {['ModbusRTU', '模拟量', '数字量', 'Zigbee'].map(p => (
             <div key={p}><RadioBox label={p} active={data.protocol === p} onClick={() => update({ protocol: p })} /></div>
           ))}
         </div>
@@ -550,9 +561,26 @@ function Step3SensorProtocol({ data, update }: any) {
                 <div className="font-bold text-sm text-gray-800 mb-4">{editingIndex >= 0 ? '编辑属性' : '新增属性'}</div>
                 <div className="grid grid-cols-12 gap-4 mb-4">
                   <div className="col-span-3">
-                    <FormInput label="属性名" value={attrForm.name} onChange={v => setAttrForm({...attrForm, name: v})} placeholder="如: 温度" />
+                    <FormInput label="属性名称" value={attrForm.name} onChange={v => setAttrForm({...attrForm, name: v})} placeholder="如: 温度" />
                   </div>
                   <div className="col-span-3">
+                    <label className="block text-xs font-medium text-gray-500 mb-1 flex items-center justify-between">
+                      <span>英文标识 (Key)</span>
+                      <span className="text-[10px] text-gray-400">英文/下划线</span>
+                    </label>
+                    <input 
+                      type="text"
+                      maxLength={50}
+                      value={attrForm.key || ''} 
+                      onChange={e => {
+                        const sanitized = e.target.value.replace(/[^a-zA-Z_]/g, '').slice(0, 50);
+                        setAttrForm({...attrForm, key: sanitized});
+                      }} 
+                      placeholder="如: temperature" 
+                      className="w-full border border-gray-200 rounded px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-all bg-white font-mono" 
+                    />
+                  </div>
+                  <div className="col-span-2">
                     <label className="block text-xs font-medium text-gray-500 mb-1">单位</label>
                     <input 
                       type="text" 
@@ -576,7 +604,7 @@ function Step3SensorProtocol({ data, update }: any) {
                     </datalist>
                   </div>
                   <div className="col-span-2">
-                    <label className="block text-xs font-medium text-gray-500 mb-1">精度</label>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">精度 (小数位)</label>
                     <input 
                       type="number" 
                       min="0"
@@ -588,7 +616,7 @@ function Step3SensorProtocol({ data, update }: any) {
                     />
                   </div>
                   {isModbus && (
-                  <div className="col-span-4">
+                  <div className="col-span-2">
                     <label className="block text-xs font-medium text-gray-500 mb-1">量程设置</label>
                     <div className="flex items-center gap-2">
                       <input 
@@ -665,7 +693,15 @@ function Step3SensorProtocol({ data, update }: any) {
               {currentAttrs.map((attr: any, i: number) => (
                 <div key={i} className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg shadow-sm hover:border-blue-300 transition-colors">
                   <div>
-                    <div className="font-bold text-gray-800 text-sm mb-1">{attr.name} <span className="text-gray-400 font-normal ml-1">({attr.unit})</span></div>
+                    <div className="font-bold text-gray-800 text-sm mb-1 flex items-center gap-1.5">
+                      <span>{attr.name}</span>
+                      {attr.key && (
+                        <span className="font-mono text-xs text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">
+                          {attr.key}
+                        </span>
+                      )}
+                      <span className="text-gray-400 font-normal ml-1">({attr.unit})</span>
+                    </div>
                     <div className="text-xs text-gray-500 flex gap-4">
                       <span>精度: {attr.precision}位小数</span>
                       {isModbus && (
@@ -690,6 +726,120 @@ function Step3SensorProtocol({ data, update }: any) {
           </div>
         )}
 
+
+        {data.protocol === '数字量' && (
+          <div>
+            <div className="text-sm font-bold text-gray-700 mb-3">默认接线端口</div>
+            <div className="flex gap-3 mb-8">
+              <Tag label="vs" /> <Tag label="gnd" /> <Tag label="signal" />
+            </div>
+
+            <div className="text-sm font-bold text-gray-700 mb-1">属性设置</div>
+            <p className="text-xs text-gray-500 mb-4">数字量协议仅设定一个属性，用于模拟 0 和 1 电平逻辑输出（例如：人体传感器有人/无人）。</p>
+
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-5 space-y-5">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-2">快捷传感器模板</label>
+                <div className="flex gap-2 flex-wrap">
+                  {[
+                    { label: '人体红外感应', prop: '人体感应', zero: '无人', one: '有人' },
+                    { label: '门磁开关', prop: '门磁状态', zero: '关闭', one: '开启' },
+                    { label: '水浸探测', prop: '水浸状态', zero: '无水', one: '有水/告警' },
+                    { label: '火焰检测', prop: '火焰状态', zero: '正常', one: '火警' },
+                    { label: '光电对射', prop: '遮挡状态', zero: '无遮挡', one: '有遮挡' }
+                  ].map(tpl => (
+                    <button
+                      key={tpl.label}
+                      type="button"
+                      onClick={() => update({
+                        digitalConfig: {
+                          ...data.digitalConfig,
+                          propertyName: tpl.prop,
+                          zeroLabel: tpl.zero,
+                          oneLabel: tpl.one
+                        }
+                      })}
+                      className="text-xs bg-white hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 border border-gray-200 px-2.5 py-1 rounded-md transition-colors text-gray-600 cursor-pointer shadow-2xs"
+                    >
+                      + {tpl.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-12 gap-4">
+                <div className="col-span-12 sm:col-span-4">
+                  <FormInput 
+                    label="属性名称" 
+                    value={data.digitalConfig?.propertyName || ''} 
+                    onChange={v => update({ digitalConfig: { ...data.digitalConfig, propertyName: v } })} 
+                    placeholder="如: 人体感应" 
+                  />
+                </div>
+                <div className="col-span-12 sm:col-span-4">
+                  <label className="block text-xs font-medium text-gray-500 mb-1 flex items-center justify-between">
+                    <span>英文标识 (Key)</span>
+                    <span className="text-[10px] text-gray-400">英文/下划线, 50字内</span>
+                  </label>
+                  <input
+                    type="text"
+                    maxLength={50}
+                    value={data.digitalConfig?.propertyKey || data.digitalConfig?.key || ''}
+                    onChange={e => {
+                      const sanitized = e.target.value.replace(/[^a-zA-Z_]/g, '').slice(0, 50);
+                      update({ digitalConfig: { ...data.digitalConfig, propertyKey: sanitized, key: sanitized } });
+                    }}
+                    placeholder="如: human_presence"
+                    className="w-full border border-gray-200 rounded px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-all bg-white font-mono"
+                  />
+                </div>
+                <div className="col-span-12 sm:col-span-4">
+                  <label className="block text-xs font-medium text-gray-500 mb-1">触发电平逻辑</label>
+                  <select
+                    value={data.digitalConfig?.triggerMode || '高电平有效 (Active High)'}
+                    onChange={e => update({ digitalConfig: { ...data.digitalConfig, triggerMode: e.target.value } })}
+                    className="w-full border border-gray-200 rounded px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-all bg-white"
+                  >
+                    <option value="高电平有效 (Active High)">高电平有效 (Active High · 1为触发)</option>
+                    <option value="低电平有效 (Active Low)">低电平有效 (Active Low · 0为触发)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-12 gap-4">
+                <div className="col-span-6">
+                  <FormInput 
+                    label="逻辑值 0 状态含义" 
+                    value={data.digitalConfig?.zeroLabel || ''} 
+                    onChange={v => update({ digitalConfig: { ...data.digitalConfig, zeroLabel: v } })} 
+                    placeholder="如: 无人 / 关闭 / 正常" 
+                  />
+                </div>
+                <div className="col-span-6">
+                  <FormInput 
+                    label="逻辑值 1 状态含义" 
+                    value={data.digitalConfig?.oneLabel || ''} 
+                    onChange={v => update({ digitalConfig: { ...data.digitalConfig, oneLabel: v } })} 
+                    placeholder="如: 有人 / 开启 / 告警" 
+                  />
+                </div>
+              </div>
+
+              <div className="p-3 bg-blue-50/70 border border-blue-100 rounded-md text-xs text-blue-800 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold">二值输出定义：</span>
+                  <span>0 ➔ <strong className="text-blue-700 font-bold">{data.digitalConfig?.zeroLabel || '0'}</strong></span>
+                  <span className="text-blue-300">|</span>
+                  <span>1 ➔ <strong className="text-blue-700 font-bold">{data.digitalConfig?.oneLabel || '1'}</strong></span>
+                </div>
+                <span className="text-[11px] text-blue-600 bg-white px-2 py-0.5 rounded border border-blue-200">
+                  单属性数字量
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {data.protocol === '模拟量' && (
           <div>
             <div className="text-sm font-bold text-gray-700 mb-3">默认接线端口</div>
@@ -697,10 +847,37 @@ function Step3SensorProtocol({ data, update }: any) {
               <Tag label="vs" /> <Tag label="gnd" /> <Tag label="signal" />
             </div>
 
-            <div className="text-sm font-bold text-gray-700 mb-4">属性设置</div>
+            <div className="text-sm font-bold text-gray-700 mb-1">属性设置</div>
+            <p className="text-xs text-gray-500 mb-4">模拟量采集单项连续物理量，请配置物理量名称、英文标识与换算区间。</p>
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-5 grid grid-cols-12 gap-x-6 gap-y-5">
               <div className="col-span-6">
-                <label className="block text-xs font-medium text-gray-500 mb-2">类型</label>
+                <FormInput 
+                  label="属性名称" 
+                  value={data.analogConfig.name || ''} 
+                  onChange={v => update({ analogConfig: { ...data.analogConfig, name: v } })} 
+                  placeholder="如: 光照度 / 水压" 
+                />
+              </div>
+              <div className="col-span-6">
+                <label className="block text-xs font-medium text-gray-500 mb-1 flex items-center justify-between">
+                  <span>英文标识 (Key)</span>
+                  <span className="text-[10px] text-gray-400">英文/下划线, 50字内</span>
+                </label>
+                <input
+                  type="text"
+                  maxLength={50}
+                  value={data.analogConfig.key || ''}
+                  onChange={e => {
+                    const sanitized = e.target.value.replace(/[^a-zA-Z_]/g, '').slice(0, 50);
+                    update({ analogConfig: { ...data.analogConfig, key: sanitized } });
+                  }}
+                  placeholder="如: light_intensity"
+                  className="w-full border border-gray-200 rounded px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-all bg-white font-mono"
+                />
+              </div>
+
+              <div className="col-span-6">
+                <label className="block text-xs font-medium text-gray-500 mb-2">信号类型</label>
                 <div className="flex gap-3">
                   <RadioBox label="电压" active={data.analogConfig.type === '电压'} onClick={() => update({ analogConfig: { ...data.analogConfig, type: '电压' } })} />
                   <RadioBox label="电流" active={data.analogConfig.type === '电流'} onClick={() => update({ analogConfig: { ...data.analogConfig, type: '电流' } })} />
@@ -766,179 +943,553 @@ function StepConfirm({ data, update }: { data: any; update: (fields: any) => voi
   const isSensor = data.type === '传感器';
   const isGateway = data.type === '网关';
 
+  // 执行器状态切换预览
+  const [actuatorState, setActuatorState] = useState<'on' | 'off'>('on');
+  // 数字量模拟电平
+  const [digitalSimVal, setDigitalSimVal] = useState<'0' | '1'>('0');
+  // 悬浮查看实时属性气泡
+  const [showAttrTooltip, setShowAttrTooltip] = useState(false);
+
+  // 获取当前展示图片
+  const getDisplayImage = () => {
+    if (isActuator) {
+      if (actuatorState === 'on') return data.onImage || data.image || '/device/RS485_WaterPump_Thumbnail.png';
+      return data.offImage || data.image || '/device/RS485_WaterPump_Thumbnail.png';
+    }
+    if (data.image) return data.image;
+    if (isSensor) {
+      if (data.protocol === '模拟量') return '/device/RS485_AirPressure_Thumbnail.png';
+      if (data.protocol === '数字量') return '/device/RS485_WaterLevel_Thumbnail.png';
+      return '/device/RS485_Humiture_Thumbnail.png';
+    }
+    if (isGateway) return '/device/UsrG771Gateway_Thumbnail.png';
+    return '/device/RS485_Humiture_Thumbnail.png';
+  };
+
+  // 根据协议与设备类型，推导与实际设计器一致的副标题与端口引脚
+  const getNodeProps = () => {
+    let subtitle = '标准设备';
+    let ports: string[] = [];
+    let portTitles: string[] = [];
+
+    if (isSensor) {
+      if (data.protocol === 'ModbusRTU') {
+        subtitle = 'RS485 / Modbus';
+        ports = ['red', 'black', 'blue', 'green'];
+        portTitles = ['VS (电源正)', 'GND (电源地)', 'RS485-A (差分正)', 'RS485-B (差分负)'];
+      } else if (data.protocol === '数字量') {
+        subtitle = '数字量 / 0-1电平';
+        ports = ['red', 'black', 'blue'];
+        portTitles = ['VS (电源正)', 'GND (电源地)', 'SIGNAL (数字逻辑)'];
+      } else if (data.protocol === '模拟量') {
+        subtitle = `模拟量 / ${data.analogConfig?.type || '电压型'}`;
+        ports = ['red', 'black', 'blue'];
+        portTitles = ['VS (电源正)', 'GND (电源地)', 'SIGNAL (模拟信号)'];
+      } else if (data.protocol === 'Zigbee') {
+        subtitle = 'Zigbee 无线透传';
+        ports = [];
+        portTitles = [];
+      }
+    } else if (isActuator) {
+      if (data.powerType === '交流') {
+        subtitle = `AC ${data.acVoltage || '220V'} 控制`;
+        ports = ['yellow', 'blue'];
+        portTitles = ['L (火线)', 'N (零线)'];
+      } else {
+        subtitle = `DC ${data.dcVoltage || '12V'} 开关控制`;
+        ports = ['red', 'black'];
+        portTitles = ['VS (+)', 'GND (-)'];
+      }
+    } else if (isGateway) {
+      subtitle = 'MQTT / 4G LTE';
+      ports = ['red', 'black', 'blue', 'green', 'yellow'];
+      portTitles = ['VCC', 'GND', 'RS485-A', 'RS485-B', 'ANT'];
+    }
+
+    return { subtitle, ports, portTitles };
+  };
+
+  const { subtitle, ports, portTitles } = getNodeProps();
+
+  // 提取设备的实时属性列表用于 Hover 弹窗
+  const getDeviceAttributes = () => {
+    if (isSensor) {
+      if (data.protocol === 'ModbusRTU') {
+        return (data.modbusAttrs && data.modbusAttrs.length > 0)
+          ? data.modbusAttrs.map((a: any, idx: number) => ({
+              name: a.name || `属性 ${idx + 1}`,
+              key: a.key || 'temperature',
+              value: idx === 0 ? '25.6' : (idx === 1 ? '58.2' : '10.0'),
+              unit: a.unit || '℃'
+            }))
+          : [{ name: '温度', key: 'temperature', value: '25.6', unit: '℃' }];
+      }
+      if (data.protocol === '模拟量') {
+        return [{
+          name: data.analogConfig?.name || '物理量采集',
+          key: data.analogConfig?.key || 'analog_value',
+          value: '12.50',
+          unit: data.analogConfig?.unit || 'V'
+        }];
+      }
+      if (data.protocol === '数字量') {
+        return [{
+          name: data.digitalConfig?.propertyName || '人体感应',
+          key: data.digitalConfig?.propertyKey || data.digitalConfig?.key || 'human_presence',
+          value: digitalSimVal === '1' ? `1 [${data.digitalConfig?.oneLabel || '有人'}]` : `0 [${data.digitalConfig?.zeroLabel || '无人'}]`,
+          unit: '电平'
+        }];
+      }
+      if (data.protocol === 'Zigbee') {
+        return (data.zigbeeAttrs || []).map((a: any) => ({
+          name: a.name,
+          key: a.key || 'zigbee_val',
+          value: '36.8',
+          unit: a.unit || ''
+        }));
+      }
+    } else if (isActuator) {
+      return [{
+        name: '动作开关状态',
+        key: 'switch_state',
+        value: actuatorState === 'on' ? '1 (运行/开启)' : '0 (停止/关闭)',
+        unit: '状态'
+      }];
+    }
+    return [];
+  };
+
+  const attributes = getDeviceAttributes();
+  const hasAttributes = attributes.length > 0;
+
+  const bgMap: Record<string, string> = {
+    red: 'bg-red-500',
+    black: 'bg-gray-800',
+    blue: 'bg-blue-500',
+    green: 'bg-green-500',
+    yellow: 'bg-yellow-400'
+  };
+
+  const getProtocolColor = (proto: string) => {
+    const p = (proto || '').toLowerCase();
+    if (p.includes('modbus')) return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+    if (p.includes('模拟')) return 'bg-amber-50 text-amber-700 border-amber-200';
+    if (p.includes('数字')) return 'bg-blue-50 text-blue-700 border-blue-200';
+    if (p.includes('zigbee')) return 'bg-purple-50 text-purple-700 border-purple-200';
+    return 'bg-gray-50 text-gray-700 border-gray-200';
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+      {/* 标题 */}
       <div>
         <h4 className="text-lg font-bold text-gray-800 mb-1 flex items-center gap-2">
           <Shield size={20} className="text-green-500" />
           确认配置信息
         </h4>
-        <p className="text-sm text-gray-500">请核对以下设备配置，确认无误后点击生成。</p>
+        <p className="text-sm text-gray-500">
+          最上方仿真画布呈现设备在设计器中的<strong>真实拓扑节点形态（所见即所得）</strong>。若设备包含属性，右上角带有<strong>属性查看小图标</strong>，鼠标移动上去可即时查看实时属性值。
+        </p>
       </div>
-      
-      <div className="bg-gray-50 border border-gray-200 rounded-lg divide-y divide-gray-200">
-        {/* Basic */}
-        <div className="p-5">
-          <div className="text-xs font-bold text-gray-400 uppercase mb-4">基础信息</div>
-          <div className="grid grid-cols-2 gap-4">
-            <div><span className="text-gray-500 text-sm">设备名称：</span> <span className="text-gray-800 font-medium text-sm">{data.name || '-'}</span></div>
-            <div><span className="text-gray-500 text-sm">设备类型：</span> <span className="text-gray-800 font-medium text-sm">{data.type}</span></div>
-            <div><span className="text-gray-500 text-sm">封面图片：</span> <span className="text-blue-500 font-medium text-sm">{data.image ? '已上传' : '未上传'}</span></div>
+
+      {/* 1. 顶部真实设计界面仿真画布 (与实际设计器画布 100% 一致) */}
+      <div className="border border-gray-200 rounded-xl overflow-hidden shadow-xs bg-white">
+        {/* 画布顶部工具栏 */}
+        <div className="px-4 py-2 bg-[#f8f9fa] border-b border-gray-200 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+              <Layers size={14} className="text-blue-500" />
+              设计器拓扑仿真画布预览
+            </span>
+            <span className="text-[11px] text-gray-400">（与实际设计界面完全一致 · 所见即所得）</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {isActuator && (
+              <button
+                type="button"
+                onClick={() => setActuatorState(s => s === 'on' ? 'off' : 'on')}
+                className={`px-2.5 py-1 rounded text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs border ${
+                  actuatorState === 'on'
+                    ? 'bg-emerald-500 text-white border-emerald-600 hover:bg-emerald-600'
+                    : 'bg-slate-200 text-slate-700 border-slate-300 hover:bg-slate-300'
+                }`}
+                title="点击实时切换运行/停止状态贴图"
+              >
+                {actuatorState === 'on' ? <Play size={11} fill="currentColor" /> : <Square size={11} fill="currentColor" />}
+                <span>{actuatorState === 'on' ? '预览: 运行状态 (ON)' : '预览: 停止状态 (OFF)'}</span>
+              </button>
+            )}
+
+            {isSensor && data.protocol === '数字量' && (
+              <button
+                type="button"
+                onClick={() => setDigitalSimVal(v => v === '0' ? '1' : '0')}
+                className="px-2.5 py-1 rounded text-xs font-semibold bg-white text-blue-600 border border-blue-200 hover:bg-blue-50 transition-all cursor-pointer shadow-2xs flex items-center gap-1.5"
+                title="点击测试 0 / 1 仿真输出状态切换"
+              >
+                <Zap size={12} />
+                <span>电平模拟: <strong>{digitalSimVal}</strong> ({digitalSimVal === '0' ? (data.digitalConfig?.zeroLabel || '无人') : (data.digitalConfig?.oneLabel || '有人')})</span>
+              </button>
+            )}
+
+            <span className="text-[10px] bg-white text-gray-500 px-2 py-0.5 rounded border border-gray-200 font-mono">
+              网格 20px · 100%
+            </span>
           </div>
         </div>
 
-        {/* Power */}
-        {!isGateway && (
-        <div className="p-5">
-          <div className="text-xs font-bold text-gray-400 uppercase mb-4">供电设置</div>
-          <div className="grid grid-cols-2 gap-4">
-            <div><span className="text-gray-500 text-sm">供电方式：</span> <span className="text-gray-800 font-medium text-sm">{data.powerType}</span></div>
-            {data.powerType !== '无需供电' && (
-              <div>
-                <span className="text-gray-500 text-sm">电压大小：</span> 
-                <span className="text-gray-800 font-medium text-sm">
-                  {data.powerType === '交流' ? (data.acVoltage === '自定义' ? `${data.customAcVal}V` : data.acVoltage) : (data.dcVoltage === '自定义' ? `${data.customDcVal}V` : data.dcVoltage)}
-                </span>
+        {/* 实际设计界面的网格背景画布 */}
+        <div className="min-h-[230px] p-6 bg-white bg-[linear-gradient(to_right,#e5e7eb_1px,transparent_1px),linear-gradient(to_bottom,#e5e7eb_1px,transparent_1px)] bg-[size:20px_20px] flex items-center justify-center relative">
+          {/* 仿真节点实体：与实际设计界面 DraggableNode 样式 100% 一致 */}
+          <div className="border border-gray-300 shadow-md bg-white rounded flex flex-col items-center z-10 w-[140px] select-none hover:shadow-xl transition-shadow relative">
+            {/* 节点顶部标题栏 */}
+            <div className="w-full px-2 py-1.5 text-[11px] font-medium text-center border-b border-gray-200 rounded-t bg-gray-100 flex items-center justify-between relative">
+              <span className="truncate flex-1 text-center text-gray-900 font-bold px-1" title={data.name || '未命名设备'}>
+                {data.name || '未命名设备'}
+              </span>
+
+              {/* 关键功能：查看属性的小图标，鼠标悬浮查看实时属性值 */}
+              {hasAttributes && (
+                <div 
+                  className="relative shrink-0"
+                  onMouseEnter={() => setShowAttrTooltip(true)}
+                  onMouseLeave={() => setShowAttrTooltip(false)}
+                >
+                  <div 
+                    className="w-4 h-4 rounded bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center cursor-pointer transition-colors shadow-2xs"
+                    title="鼠标悬浮查看实时属性"
+                  >
+                    <Activity size={11} className="text-blue-600 animate-pulse" />
+                  </div>
+
+                  {/* 鼠标移动上去弹出的实时属性值浮层气泡 */}
+                  {showAttrTooltip && (
+                    <div className="absolute left-full top-0 ml-2.5 z-50 w-60 bg-slate-900/95 text-white backdrop-blur-md rounded-xl shadow-2xl border border-slate-700/80 p-3 text-xs animate-in fade-in zoom-in-95 pointer-events-none text-left font-sans">
+                      <div className="flex items-center justify-between border-b border-slate-800 pb-1.5 mb-2">
+                        <span className="font-bold text-[11px] text-slate-200 flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                          实时属性监控
+                        </span>
+                        <span className="text-[9px] text-emerald-400 bg-emerald-950/80 border border-emerald-800 px-1.5 py-0.5 rounded font-mono font-semibold">
+                          ONLINE
+                        </span>
+                      </div>
+                      
+                      <div className="space-y-1.5">
+                        {attributes.map((attr: any, idx: number) => (
+                          <div key={idx} className="flex items-center justify-between bg-slate-800/80 px-2 py-1.5 rounded-lg border border-slate-700/50 text-[11px]">
+                            <div className="flex flex-col min-w-0 pr-1">
+                              <span className="text-slate-200 font-medium truncate">{attr.name}</span>
+                              {attr.key && <span className="text-[9px] text-blue-400 font-mono">{attr.key}</span>}
+                            </div>
+                            <div className="text-right shrink-0">
+                              <span className="font-mono font-bold text-amber-300 text-xs">{attr.value}</span>
+                              {attr.unit && attr.unit !== '状态' && attr.unit !== '电平' && (
+                                <span className="text-[10px] text-slate-400 ml-1">{attr.unit}</span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="mt-2 pt-1.5 border-t border-slate-800/80 flex justify-between items-center text-[9px] text-slate-400">
+                        <span>刷新周期: 1000ms</span>
+                        <span className="text-cyan-400 font-mono">仿真数据源正常</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* 节点中间设备贴图与副标题 */}
+            <div className="p-3 flex flex-col items-center w-full">
+              <div className="w-14 h-14 flex items-center justify-center">
+                <img 
+                  src={getDisplayImage()} 
+                  alt={data.name} 
+                  className="w-full h-full object-contain" 
+                />
+              </div>
+              <div className="text-[9px] text-gray-500 mt-2 text-center leading-tight whitespace-pre-line bg-gray-50 px-2 py-0.5 rounded max-w-[125px] truncate border border-gray-100 font-mono">
+                {subtitle}
+              </div>
+            </div>
+
+            {/* 节点底部端子圆点 (与实际设计界面一致) */}
+            {ports && ports.length > 0 && (
+              <div className="flex justify-around w-full pb-1.5 px-2 gap-1.5 border-t border-gray-100 pt-1.5 bg-gray-50 rounded-b">
+                {ports.map((color: string, i: number) => (
+                  <div
+                    key={i}
+                    className={`w-2.5 h-2.5 rounded-full ${bgMap[color] || 'bg-gray-300'} border-[1.5px] border-white shadow-xs ring-1 ring-gray-300`}
+                    title={portTitles[i] || color}
+                  ></div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* 2. 整理后的规格参数详情卡片 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* 卡片 1: 基础参数与供电规格 */}
+        <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-2xs space-y-3">
+          <div className="text-xs font-bold text-gray-500 uppercase tracking-wider pb-2 border-b border-gray-100 flex items-center gap-1.5">
+            <Info size={14} className="text-blue-500" />
+            基础规格与供电
+          </div>
+          <div className="space-y-2.5 text-xs">
+            <div className="flex justify-between items-center">
+              <span className="text-gray-500">设备名称</span>
+              <span className="font-bold text-gray-800">{data.name || '-'}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-500">设备类型</span>
+              <span className="font-semibold text-gray-700">{data.type}</span>
+            </div>
+            {!isGateway && (
+              <>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-500">供电方式</span>
+                  <span className="font-semibold text-gray-800">{data.powerType}</span>
+                </div>
+                {data.powerType !== '无需供电' && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-500">额定工作电压</span>
+                    <span className="font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
+                      {data.powerType === '交流' ? (data.acVoltage === '自定义' ? `${data.customAcVal}V` : data.acVoltage) : (data.dcVoltage === '自定义' ? `${data.customDcVal}V` : data.dcVoltage)}
+                    </span>
+                  </div>
+                )}
+              </>
+            )}
+            {isGateway && (
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500">网关类型</span>
+                <span className="font-semibold text-gray-800">{data.gatewayType}</span>
               </div>
             )}
           </div>
         </div>
 
-        )}
-
-        {/* Actuator Specific */}
-        {isActuator && (
-          <div className="p-5">
-            <div className="text-xs font-bold text-gray-400 uppercase mb-4">扩展配置</div>
-            <div className="space-y-4">
-              <div>
-                <span className="text-gray-500 text-sm mb-2 block">系统分配端口：</span> 
-                <div className="flex gap-2">
-                  {data.powerType === '直流' ? (
-                    <><Tag label="vs" /><Tag label="gnd" /></>
-                  ) : data.powerType === '交流' ? (
-                    <Tag label="power" />
-                  ) : <span className="text-sm text-gray-400">无</span>}
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4 mt-2">
-                <div><span className="text-gray-500 text-sm">开状态图片：</span> <span className="text-blue-500 font-medium text-sm">{data.onImage ? '已设置' : '未上传'}</span></div>
-                <div><span className="text-gray-500 text-sm">关状态图片：</span> <span className="text-blue-500 font-medium text-sm">{data.offImage ? '已设置' : '未上传'}</span></div>
-              </div>
-            </div>
+        {/* 卡片 2: 通讯接口与接线引脚 */}
+        <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-2xs space-y-3">
+          <div className="text-xs font-bold text-gray-500 uppercase tracking-wider pb-2 border-b border-gray-100 flex items-center gap-1.5">
+            <Terminal size={14} className="text-emerald-500" />
+            通讯接口与接线引脚
           </div>
-        )}
-
-        {/* Sensor Specific */}
-        {isSensor && (
-          <div className="p-5">
-            <div className="text-xs font-bold text-gray-400 uppercase mb-4">协议及属性</div>
-            <div className="space-y-4">
-              <div><span className="text-gray-500 text-sm">设备协议：</span> <span className="text-blue-600 font-bold text-sm bg-blue-50 px-2 py-1 rounded">{data.protocol}</span></div>
-              
-              {data.protocol === 'ModbusRTU' && (
-                <>
-                  <div>
-                    <span className="text-gray-500 text-sm mb-2 block">系统分配端口：</span> 
-                    <div className="flex gap-2"><Tag label="rs485A" /><Tag label="rs485B" /><Tag label="vs" /><Tag label="gnd" /></div>
-                  </div>
-                  <div>
-                    <span className="text-gray-500 text-sm mb-2 block">采集属性 ({data.modbusAttrs.length})：</span> 
-                    <div className="bg-white border border-gray-200 rounded p-3 text-sm text-gray-600">
-                      {data.modbusAttrs.map((a: any, i: number) => (
-                         <div key={i} className="mb-1 last:mb-0">
-                           <strong className="text-gray-800">{a.name}</strong> ({a.unit}) - 精度: {a.precision || '0'}, 量程: {a.range}, 地址: {a.startAddr}
-                         </div>
-                      ))}
-                      {data.modbusAttrs.length === 0 && <span className="text-gray-400">暂无属性</span>}
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {data.protocol === '模拟量' && (
-                <>
-                  <div>
-                    <span className="text-gray-500 text-sm mb-2 block">系统分配端口：</span> 
-                    <div className="flex gap-2"><Tag label="vs" /><Tag label="gnd" /><Tag label="signal" /></div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div><span className="text-gray-500 text-sm">信号类型：</span> <span className="text-gray-800 font-medium text-sm">{data.analogConfig.type}</span></div>
-                    <div><span className="text-gray-500 text-sm">量程范围：</span> <span className="text-gray-800 font-medium text-sm">{data.analogConfig.range}{data.analogConfig.unit}</span></div>
-                    <div><span className="text-gray-500 text-sm">精度设置：</span> <span className="text-gray-800 font-medium text-sm">保留 {data.analogConfig.precision ?? '0'} 位小数</span></div>
-                    <div className="col-span-2"><span className="text-gray-500 text-sm">区间映射：</span> <span className="text-gray-800 font-medium text-sm">{data.analogConfig.min} ~ {data.analogConfig.max}</span></div>
-                  </div>
-                </>
-              )}
-
-              {data.protocol === 'Zigbee' && (
-                <>
-                  <div>
-                    <span className="text-gray-500 text-sm mb-2 block">无线协议：</span> 
-                    <div className="text-sm text-gray-800">透传模式，无物理端口</div>
-                  </div>
-                  <div>
-                    <span className="text-gray-500 text-sm mb-2 block">采集属性 ({data.zigbeeAttrs?.length || 0})：</span> 
-                    <div className="bg-white border border-gray-200 rounded p-3 text-sm text-gray-600">
-                      {data.zigbeeAttrs?.map((a: any, i: number) => (
-                         <div key={i} className="mb-1 last:mb-0">
-                           <strong className="text-gray-800">{a.name}</strong> ({a.unit}) - 精度: {a.precision || '0'}
-                         </div>
-                      ))}
-                      {(!data.zigbeeAttrs || data.zigbeeAttrs.length === 0) && <span className="text-gray-400">暂无属性</span>}
-                    </div>
-                  </div>
-                </>
-              )}
+          <div className="space-y-2.5 text-xs">
+            <div className="flex justify-between items-center">
+              <span className="text-gray-500">通讯协议</span>
+              <span className={`font-bold text-xs px-2 py-0.5 rounded border ${getProtocolColor(data.protocol)}`}>
+                {isSensor ? data.protocol : (isActuator ? '开关量控制' : data.gatewayType)}
+              </span>
             </div>
-          </div>
-        )}
-
-        {/* Gateway Specific */}
-        {isGateway && (
-          <div className="p-5">
-            <div className="text-xs font-bold text-gray-400 uppercase mb-4">网关配置</div>
-            <div className="space-y-4">
-              <div><span className="text-gray-500 text-sm">网关类型：</span> <span className="text-gray-800 font-medium text-sm">{data.gatewayType}</span></div>
-              <div>
-                <span className="text-gray-500 text-sm mb-2 block">系统分配端口：</span> 
-                <div className="flex gap-2">
-                  {data.gatewayType === '云平台网关' ? (
-                    <><Tag label="rs485a" /><Tag label="rs485b" /><Tag label="network" /><Tag label="power" /></>
-                  ) : (
-                    <><Tag label="rs485a" /><Tag label="rs485b" /><Tag label="vs" /><Tag label="gnd" /></>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Publish Option */}
-        <div className="p-5 bg-gradient-to-r from-blue-50/70 to-indigo-50/40">
-          <div className="flex items-start gap-3.5">
-            <div className="pt-0.5">
-              <input
-                type="checkbox"
-                id="publishToSimulationCheckbox"
-                checked={data.publishToSimulation || false}
-                onChange={(e) => update({ publishToSimulation: e.target.checked })}
-                className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-gray-300 cursor-pointer"
-              />
-            </div>
-            <label htmlFor="publishToSimulationCheckbox" className="cursor-pointer select-none">
-              <div className="text-sm font-bold text-gray-800 flex items-center gap-2">
-                是否发布到仿真设备
-                {data.publishToSimulation && (
-                  <span className="text-[10px] bg-blue-100 text-blue-700 font-semibold px-2 py-0.5 rounded border border-blue-200">公开共享</span>
+            <div className="flex justify-between items-start">
+              <span className="text-gray-500 pt-1">系统分配引脚</span>
+              <div className="flex gap-1.5 flex-wrap justify-end">
+                {isSensor && (data.protocol === '数字量' || data.protocol === '模拟量') && (
+                  <><Tag label="vs" /><Tag label="gnd" /><Tag label="signal" /></>
                 )}
+                {isSensor && data.protocol === 'ModbusRTU' && (
+                  <><Tag label="rs485A" /><Tag label="rs485B" /><Tag label="vs" /><Tag label="gnd" /></>
+                )}
+                {isSensor && data.protocol === 'Zigbee' && (
+                  <span className="text-gray-400">无线透传 (无物理端口)</span>
+                )}
+                {isActuator && (
+                  data.powerType === '直流' ? (
+                    <><Tag label="vs" /><Tag label="gnd" /></>
+                  ) : <Tag label="power" />
+                )}
+                {isGateway && <span className="text-gray-400">标准网络通信端口</span>}
               </div>
-              <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                发布后可以被其他用户查看和复制，共同构建开源设备库生态。
-              </p>
-            </label>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-500">物理端子数</span>
+              <span className="font-mono text-gray-700">
+                {isSensor && (data.protocol === '数字量' || data.protocol === '模拟量') ? '3 端子 (三线制)' : (data.protocol === 'ModbusRTU' ? '4 端子 (RS485)' : '无物理端子')}
+              </span>
+            </div>
           </div>
         </div>
+      </div>
+
+      {/* 卡片 3: 遥测属性与参数定义规范 */}
+      <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-2xs space-y-3">
+        <div className="text-xs font-bold text-gray-500 uppercase tracking-wider pb-2 border-b border-gray-100 flex items-center justify-between">
+          <span className="flex items-center gap-1.5">
+            <Zap size={14} className="text-amber-500" />
+            遥测属性与数据解析规范
+          </span>
+          <span className="text-[11px] font-normal text-gray-400">
+            {isSensor ? `已配置 ${data.protocol} 协议参数` : (isActuator ? '执行器动作贴图规格' : '网关配置')}
+          </span>
+        </div>
+
+        {/* Modbus 属性 */}
+        {isSensor && data.protocol === 'ModbusRTU' && (
+          <div className="space-y-2">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-gray-50 text-gray-500 text-[11px]">
+                  <tr>
+                    <th className="py-2 px-3 font-semibold">属性名称</th>
+                    <th className="py-2 px-3 font-semibold">英文标识 (Key)</th>
+                    <th className="py-2 px-3 font-semibold">单位</th>
+                    <th className="py-2 px-3 font-semibold">精度</th>
+                    <th className="py-2 px-3 font-semibold">量程</th>
+                    <th className="py-2 px-3 font-semibold">功能码</th>
+                    <th className="py-2 px-3 font-semibold">起始地址</th>
+                    <th className="py-2 px-3 font-semibold">换算公式</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {data.modbusAttrs.map((a: any, i: number) => (
+                    <tr key={i} className="hover:bg-blue-50/30">
+                      <td className="py-2 px-3 font-medium text-gray-900">{a.name}</td>
+                      <td className="py-2 px-3 font-mono text-blue-600 font-semibold">{a.key || '-'}</td>
+                      <td className="py-2 px-3 text-gray-600">{a.unit}</td>
+                      <td className="py-2 px-3 text-gray-600">{a.precision || '0'} 位</td>
+                      <td className="py-2 px-3 text-gray-600">{a.range || '-'}</td>
+                      <td className="py-2 px-3 font-mono text-emerald-600">{a.funcCode || '0x03'}</td>
+                      <td className="py-2 px-3 font-mono text-gray-700">{a.startAddr || '0004'}</td>
+                      <td className="py-2 px-3 font-mono text-purple-700">{a.formula || 'RAW/10'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {data.modbusAttrs.length === 0 && (
+              <div className="text-center py-4 text-xs text-gray-400">暂无属性</div>
+            )}
+          </div>
+        )}
+
+        {/* 数字量属性 */}
+        {isSensor && data.protocol === '数字量' && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+            <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 flex flex-col gap-1">
+              <span className="text-gray-400 text-[11px]">检测属性名称</span>
+              <span className="font-bold text-gray-800">{data.digitalConfig?.propertyName || '人体感应'}</span>
+            </div>
+            <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 flex flex-col gap-1">
+              <span className="text-gray-400 text-[11px]">英文标识 (Key)</span>
+              <span className="font-mono font-bold text-blue-600">{data.digitalConfig?.propertyKey || data.digitalConfig?.key || 'human_presence'}</span>
+            </div>
+            <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 flex flex-col gap-1">
+              <span className="text-gray-400 text-[11px]">触发电平逻辑</span>
+              <span className="font-semibold text-gray-700">{data.digitalConfig?.triggerMode || '高电平有效'}</span>
+            </div>
+            <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 flex flex-col gap-1">
+              <span className="text-gray-400 text-[11px]">二值状态映射</span>
+              <span className="font-semibold text-emerald-700">0: {data.digitalConfig?.zeroLabel || '正常'} | 1: {data.digitalConfig?.oneLabel || '告警'}</span>
+            </div>
+          </div>
+        )}
+
+        {/* 模拟量属性 */}
+        {isSensor && data.protocol === '模拟量' && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+            <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 flex flex-col gap-1">
+              <span className="text-gray-400 text-[11px]">物理量名称</span>
+              <span className="font-bold text-gray-800">{data.analogConfig?.name || '物理量采集'}</span>
+            </div>
+            <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 flex flex-col gap-1">
+              <span className="text-gray-400 text-[11px]">英文标识 (Key)</span>
+              <span className="font-mono font-bold text-blue-600">{data.analogConfig?.key || 'analog_value'}</span>
+            </div>
+            <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 flex flex-col gap-1">
+              <span className="text-gray-400 text-[11px]">信号类型与量程</span>
+              <span className="font-semibold text-gray-700">{data.analogConfig?.type} ({data.analogConfig?.range}{data.analogConfig?.unit})</span>
+            </div>
+            <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 flex flex-col gap-1">
+              <span className="text-gray-400 text-[11px]">量程区间映射</span>
+              <span className="font-mono font-semibold text-amber-700">{data.analogConfig?.min} ~ {data.analogConfig?.max} {data.analogConfig?.unit}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Zigbee 属性 */}
+        {isSensor && data.protocol === 'Zigbee' && (
+          <div className="space-y-2">
+            {data.zigbeeAttrs && data.zigbeeAttrs.length > 0 ? (
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                {data.zigbeeAttrs.map((a: any, i: number) => (
+                  <div key={i} className="bg-gray-50 p-2.5 rounded border border-gray-100 flex items-center justify-between">
+                    <div>
+                      <span className="font-bold text-gray-800">{a.name}</span>
+                      {a.key && <span className="font-mono text-blue-600 ml-1.5">({a.key})</span>}
+                    </div>
+                    <span className="text-gray-500 font-mono">{a.unit} · {a.precision || '0'}位小数</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-4 text-xs text-gray-400">暂无属性</div>
+            )}
+          </div>
+        )}
+
+        {/* 执行器贴图对比 */}
+        {isActuator && (
+          <div className="grid grid-cols-2 gap-4 text-xs pt-1">
+            <div className="border border-gray-200 rounded-lg p-3 bg-gray-50 flex items-center gap-3">
+              <div className="w-12 h-12 rounded bg-white border border-gray-200 p-1 flex items-center justify-center shrink-0">
+                <img src={data.onImage || data.image || '/device/RS485_WaterPump_Thumbnail.png'} alt="开" className="w-full h-full object-contain" />
+              </div>
+              <div>
+                <div className="font-bold text-gray-800 flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span> 运行 / 开状态贴图
+                </div>
+                <div className="text-[11px] text-gray-400 mt-0.5">{data.onImage ? '已上传专属贴图' : '使用默认缩略图'}</div>
+              </div>
+            </div>
+
+            <div className="border border-gray-200 rounded-lg p-3 bg-gray-50 flex items-center gap-3">
+              <div className="w-12 h-12 rounded bg-white border border-gray-200 p-1 flex items-center justify-center shrink-0">
+                <img src={data.offImage || data.image || '/device/RS485_WaterPump_Thumbnail.png'} alt="关" className="w-full h-full object-contain" />
+              </div>
+              <div>
+                <div className="font-bold text-gray-800 flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-slate-400"></span> 停止 / 关状态贴图
+                </div>
+                <div className="text-[11px] text-gray-400 mt-0.5">{data.offImage ? '已上传专属贴图' : '使用默认缩略图'}</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 网关 */}
+        {isGateway && (
+          <div className="text-xs text-gray-600 bg-gray-50 p-3 rounded-lg border border-gray-100">
+            网关将作为拓扑中的中心采集路由节点，支持对下挂 Modbus / 模拟量 / 数字量设备进行统一透传上报。
+          </div>
+        )}
+      </div>
+
+      {/* 4. 发布状态选项 */}
+      <div className="bg-gradient-to-r from-blue-50/60 to-indigo-50/40 border border-blue-100 rounded-xl p-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            id="publish_checkbox"
+            checked={Boolean(data.publishToSimulation)}
+            onChange={e => update({ publishToSimulation: e.target.checked })}
+            className="w-4 h-4 rounded text-blue-600 focus:ring-blue-400 border-gray-300 cursor-pointer"
+          />
+          <label htmlFor="publish_checkbox" className="text-xs text-gray-700 cursor-pointer">
+            <span className="font-bold text-gray-800">同步发布至公共仿真设备大厅</span>
+            <span className="block text-gray-500 mt-0.5">勾选后该设备将出现在“仿真设备中心”，其他用户仅可见不可编辑，支持添加到仿真拓扑中。</span>
+          </label>
+        </div>
+        <span className="text-[11px] font-semibold text-blue-600 bg-white px-2.5 py-1 rounded-md border border-blue-200 shrink-0">
+          创建者: 杨振邦
+        </span>
       </div>
     </div>
   );

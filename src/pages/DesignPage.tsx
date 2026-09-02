@@ -3,12 +3,13 @@ import {
   MousePointer2, Type, Image, Undo, Redo, 
   Eye, FileText, Cloud, Clock, ChevronDown, UserCircle2,
   Grid3X3, ArrowRightLeft, AlignLeft, Layers, Plus,
-  Box, LayoutGrid, List, Sparkles, AlertCircle
+  Box, LayoutGrid, List, Sparkles, AlertCircle, Activity, Filter
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import React, { useState, useEffect, useMemo } from 'react';
 
 import AddCustomDeviceModal from '../components/AddCustomDeviceModal';
+import QuickDeviceCenterModal from '../components/QuickDeviceCenterModal';
 import { deviceTreeData } from '../data/deviceTree';
 import { getDeviceImageUrl } from '../utils/deviceImages';
 import { useDraggable } from '../hooks/useDraggable';
@@ -118,6 +119,7 @@ export default function DesignPage() {
   };
 
   const [isAddDeviceModalOpen, setIsAddDeviceModalOpen] = useState(false);
+  const [isDeviceCenterModalOpen, setIsDeviceCenterModalOpen] = useState(false);
   const [activeDeviceTab, setActiveDeviceTab] = useState<'system' | 'custom'>('system');
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -330,9 +332,17 @@ export default function DesignPage() {
         <aside className="w-[310px] bg-white border-r flex flex-col shrink-0 z-10 shadow-[2px_0_6px_rgba(0,0,0,0.03)]">
           {/* Header */}
           <div className="p-3 border-b flex items-center justify-between text-sm font-bold text-gray-700 bg-gray-50/70">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <Layers size={16} className="text-blue-500"/>
               <span>仿真设备库</span>
+              <button
+                type="button"
+                onClick={() => setIsDeviceCenterModalOpen(true)}
+                className="w-5 h-5 rounded hover:bg-blue-100/80 text-gray-400 hover:text-blue-600 flex items-center justify-center transition-all cursor-pointer border border-transparent hover:border-blue-200 ml-0.5"
+                title="打开仿真设备中心快速检索并添加设备"
+              >
+                <Filter size={13} />
+              </button>
             </div>
             <span className="text-[11px] font-normal text-gray-500 bg-gray-200/70 px-2 py-0.5 rounded-full">
               共 {allDevices.length} 种
@@ -786,6 +796,7 @@ export default function DesignPage() {
                   </div>
                 }
                 ports={['top-blue', 'bottom-red', 'bottom-black', 'bottom-green']}
+                attributes={node.modbusAttrs || node.attributes}
               />
             ))}
 
@@ -886,6 +897,14 @@ export default function DesignPage() {
       </div>
 
       <AddCustomDeviceModal isOpen={isAddDeviceModalOpen} onClose={() => setIsAddDeviceModalOpen(false)} />
+      
+      {/* 仿真设备中心快速检索弹窗 */}
+      <QuickDeviceCenterModal
+        isOpen={isDeviceCenterModalOpen}
+        onClose={() => setIsDeviceCenterModalOpen(false)}
+        onAddDevice={handleAddDeviceToCanvas}
+        canvasDeviceCount={addedNodes.length}
+      />
     </div>
   );
 }
@@ -974,19 +993,105 @@ function DraggableContainer({ children, className, style, id, onDrag }: any) {
   );
 }
 
-function DraggableNode({ id, title, subtitle, icon, style, ports, headerClass="bg-gray-100", onDrag, onDelete }: any) {
+function DraggableNode({ id, title, subtitle, icon, style, ports, headerClass="bg-gray-100", onDrag, onDelete, attributes }: any) {
+  const [showAttrTooltip, setShowAttrTooltip] = useState(false);
+
+  // 若没有显式传入 attributes，则根据 title / subtitle 自动推导是否有属性
+  const computedAttributes = useMemo(() => {
+    if (attributes && Array.isArray(attributes) && attributes.length > 0) return attributes;
+    const t = (title || '').toLowerCase();
+    const s = (subtitle || '').toLowerCase();
+    if (t.includes('温湿度') || s.includes('humiture') || s.includes('ha_61')) {
+      return [
+        { name: '温度', key: 'temperature', value: '25.6', unit: '℃' },
+        { name: '湿度', key: 'humidity', value: '58.2', unit: '%RH' }
+      ];
+    }
+    if (t.includes('变送器') || t.includes('压力') || s.includes('0-5v') || s.includes('4-20ma')) {
+      return [
+        { name: '管道压力', key: 'pressure', value: '0.82', unit: 'MPa' }
+      ];
+    }
+    if (t.includes('人体') || t.includes('门磁') || t.includes('水浸') || s.includes('0-1')) {
+      return [
+        { name: '检测状态', key: 'state_signal', value: '0 (正常/无人)', unit: '电平' }
+      ];
+    }
+    if (t.includes('水泵') || t.includes('阀门') || t.includes('执行器')) {
+      return [
+        { name: '运行开关', key: 'run_state', value: '1 (运行中)', unit: '状态' }
+      ];
+    }
+    if (t.includes('网关') || s.includes('mqtt')) {
+      return [
+        { name: '上云状态', key: 'cloud_status', value: 'ONLINE', unit: '' },
+        { name: '4G 信号', key: 'csq', value: '28', unit: 'CSQ' }
+      ];
+    }
+    return [];
+  }, [attributes, title, subtitle]);
+
+  const hasAttrs = computedAttributes.length > 0;
+
   return (
     <DraggableContainer className="absolute border border-gray-300 shadow-md bg-white rounded flex flex-col items-center cursor-move hover:shadow-xl transition-shadow z-10 group"
       style={style}
       onDrag={onDrag}
       id={id}
     >
-      <div className={`w-full px-3 py-1.5 text-[11px] font-medium text-center border-b border-gray-200 rounded-t relative ${headerClass}`}>
-        <span className="truncate block max-w-[130px] mx-auto">{title}</span>
+      <div className={`w-full px-2 py-1.5 text-[11px] font-medium text-center border-b border-gray-200 rounded-t relative flex items-center justify-between ${headerClass}`}>
+        <span className="truncate flex-1 text-center font-bold px-1 text-gray-900" title={title}>{title}</span>
+        
+        {/* 查看属性小图标 */}
+        {hasAttrs && (
+          <div 
+            className="relative shrink-0"
+            onMouseEnter={() => setShowAttrTooltip(true)}
+            onMouseLeave={() => setShowAttrTooltip(false)}
+          >
+            <div 
+              className="w-3.5 h-3.5 rounded bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center cursor-pointer transition-colors shadow-2xs"
+              title="查看实时属性"
+            >
+              <Activity size={10} className="text-blue-600 animate-pulse" />
+            </div>
+
+            {/* Hover 实时属性卡片 */}
+            {showAttrTooltip && (
+              <div className="absolute left-full top-0 ml-2 z-50 w-56 bg-slate-900/95 text-white backdrop-blur-md rounded-xl shadow-2xl border border-slate-700/80 p-3 text-xs animate-in fade-in zoom-in-95 pointer-events-none text-left font-sans select-none">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-1.5 mb-2">
+                  <span className="font-bold text-[11px] text-slate-200 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                    实时属性监控
+                  </span>
+                  <span className="text-[9px] text-emerald-400 bg-emerald-950/80 border border-emerald-800 px-1 rounded font-mono">ONLINE</span>
+                </div>
+                
+                <div className="space-y-1.5">
+                  {computedAttributes.map((attr: any, idx: number) => (
+                    <div key={idx} className="flex items-center justify-between bg-slate-800/80 px-2 py-1.5 rounded-lg border border-slate-700/50 text-[11px]">
+                      <div className="flex flex-col min-w-0 pr-1">
+                        <span className="text-slate-200 font-medium truncate">{attr.name}</span>
+                        {attr.key && <span className="text-[9px] text-blue-400 font-mono">{attr.key}</span>}
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="font-mono font-bold text-amber-300">{attr.value}</span>
+                        {attr.unit && attr.unit !== '状态' && attr.unit !== '电平' && (
+                          <span className="text-[10px] text-slate-400 ml-1">{attr.unit}</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {onDelete && (
           <button 
             onClick={(e) => { e.stopPropagation(); onDelete(); }}
-            className="absolute right-1 top-1 w-4 h-4 rounded-full bg-red-100 text-red-600 hover:bg-red-200 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+            className="absolute -right-1 -top-1 w-4 h-4 rounded-full bg-red-100 text-red-600 hover:bg-red-200 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer shadow-xs"
             title="删除"
           >
             ×
@@ -995,7 +1100,7 @@ function DraggableNode({ id, title, subtitle, icon, style, ports, headerClass="b
       </div>
       <div className="p-3 flex flex-col items-center">
         {icon}
-        {subtitle && <div className="text-[9px] text-gray-500 mt-2 text-center leading-tight whitespace-pre-line bg-gray-50 px-2 py-0.5 rounded max-w-[130px] truncate">{subtitle}</div>}
+        {subtitle && <div className="text-[9px] text-gray-500 mt-2 text-center leading-tight whitespace-pre-line bg-gray-50 px-2 py-0.5 rounded max-w-[130px] truncate border border-gray-100 font-mono">{subtitle}</div>}
       </div>
       
       {/* Ports */}

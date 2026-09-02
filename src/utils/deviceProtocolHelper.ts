@@ -1,5 +1,6 @@
 export interface ModbusRegisterItem {
   name: string;
+  key?: string;
   functionCode: string;
   addressHex: string;
   addressDec: number;
@@ -21,6 +22,8 @@ export interface CommandFrameExample {
 }
 
 export interface AnalogFormulaExample {
+  name?: string;
+  key?: string;
   signalType: string;
   voltageOrCurrentRange: string;
   physicalRange: string;
@@ -34,12 +37,26 @@ export interface AnalogFormulaExample {
   adcRelation: string;
 }
 
+export interface DigitalSignalExample {
+  propertyName: string;
+  propertyKey?: string;
+  key?: string;
+  zeroLabel: string;
+  oneLabel: string;
+  defaultVal: string;
+  triggerMode: string;
+  signalType: string;
+  pins: { pin: string; name: string; desc: string }[];
+  stateTable: Array<{ level: string; logicVal: string; stateMeaning: string }>;
+}
+
 export interface DeviceProtocolInfo {
-  protocolCategory: 'modbus' | 'analog' | 'none';
+  protocolCategory: 'modbus' | 'analog' | 'digital' | 'none';
   protocolName: string;
   modbusRegisters?: ModbusRegisterItem[];
   commandExamples?: CommandFrameExample[];
   analogFormula?: AnalogFormulaExample;
+  digitalSignal?: DigitalSignalExample;
 }
 
 export function getDeviceProtocolInfo(device: any): DeviceProtocolInfo {
@@ -52,8 +69,16 @@ export function getDeviceProtocolInfo(device: any): DeviceProtocolInfo {
   const type = String(device.inferredType || (typeof device.type === 'string' ? device.type : '') || '').toLowerCase();
   const isCustom = Boolean(device.isCustom || String(device.id || '').toLowerCase().startsWith('custom_') || (device.categoryPath && String(device.categoryPath).includes('自定义')));
 
-  // 1. 判断是否为模拟量设备（包括自定义设备带有 analogConfig 或 protocol 为模拟量）
-  const isAnalog = (
+  // 1. 判断是否为数字量设备
+  const isDigital = (
+    rawProtocol.includes('数字') ||
+    rawProtocol.includes('digital') ||
+    rawProtocol.includes('开关量') ||
+    Boolean(device.digitalConfig)
+  );
+
+  // 2. 判断是否为模拟量设备（包括自定义设备带有 analogConfig 或 protocol 为模拟量）
+  const isAnalog = !isDigital && (
     rawProtocol.includes('模拟') ||
     rawProtocol.includes('analog') ||
     rawProtocol.includes('4-20ma') ||
@@ -67,10 +92,10 @@ export function getDeviceProtocolInfo(device: any): DeviceProtocolInfo {
     Boolean(device.analogConfig)
   );
 
-  // 2. 判断是否为 Modbus 设备（包括自定义设备带有 modbusAttrs 或 protocol 为 Modbus）
+  // 3. 判断是否为 Modbus 设备（包括自定义设备带有 modbusAttrs 或 protocol 为 Modbus）
   const isExplicitWireless = rawProtocol.includes('zigbee') || rawProtocol.includes('lora') || rawProtocol.includes('蓝牙') || rawProtocol.includes('bluetooth') || rawProtocol.includes('mqtt') || type.includes('网关');
 
-  const isModbus = !isAnalog && (
+  const isModbus = !isDigital && !isAnalog && (
     rawProtocol.includes('modbus') ||
     rawProtocol.includes('485') ||
     rawProtocol.includes('rtu') ||
@@ -83,7 +108,40 @@ export function getDeviceProtocolInfo(device: any): DeviceProtocolInfo {
     (!isExplicitWireless && !rawProtocol.includes('其他'))
   );
 
-  // 1. 模拟量协议分支
+  // 分支 1: 数字量协议 (Digital Signal - 0/1)
+  if (isDigital) {
+    const propName = device.digitalConfig?.propertyName || (name.includes('人体') ? '人体感应' : name.includes('门磁') ? '门磁状态' : name.includes('水浸') ? '水浸状态' : '开关状态');
+    const zeroLabel = device.digitalConfig?.zeroLabel || (name.includes('人体') ? '无人' : name.includes('门磁') ? '关闭' : name.includes('水浸') ? '无水' : '0 (正常)');
+    const oneLabel = device.digitalConfig?.oneLabel || (name.includes('人体') ? '有人' : name.includes('门磁') ? '开启' : name.includes('水浸') ? '有水/告警' : '1 (触发)');
+    const defaultVal = device.digitalConfig?.defaultVal || '0';
+    const triggerMode = device.digitalConfig?.triggerMode || '高电平有效 (Active High)';
+
+    return {
+      protocolCategory: 'digital',
+      protocolName: '数字量',
+      digitalSignal: {
+        propertyName: propName,
+        propertyKey: device.digitalConfig?.propertyKey || device.digitalConfig?.key || (name.includes('人体') ? 'human_presence' : name.includes('门磁') ? 'door_contact' : 'state_signal'),
+        key: device.digitalConfig?.propertyKey || device.digitalConfig?.key || (name.includes('人体') ? 'human_presence' : name.includes('门磁') ? 'door_contact' : 'state_signal'),
+        zeroLabel,
+        oneLabel,
+        defaultVal,
+        triggerMode,
+        signalType: 'TTL 0/1 电平逻辑信号 (0V / 3.3V~5V)',
+        pins: [
+          { pin: 'vs', name: '电源正极', desc: 'DC 5V / 12V / 24V 供电输入' },
+          { pin: 'gnd', name: '电源负极', desc: '电源地 / 信号参考地' },
+          { pin: 'signal', name: '数字信号输出端', desc: '输出 0 或 1 电平信号，连接控制器DI/GPIO' }
+        ],
+        stateTable: [
+          { level: '低电平 (0V)', logicVal: '0', stateMeaning: zeroLabel },
+          { level: '高电平 (3.3V / 5V)', logicVal: '1', stateMeaning: oneLabel }
+        ]
+      }
+    };
+  }
+
+  // 分支 2: 模拟量协议
   if (isAnalog) {
     let signalType = '0~5V 模拟电压信号';
     let voltageOrCurrentRange = '0.00 ~ 5.00 V';
@@ -106,6 +164,8 @@ export function getDeviceProtocolInfo(device: any): DeviceProtocolInfo {
       protocolCategory: 'analog',
       protocolName: '模拟量',
       analogFormula: {
+        name: device.analogConfig?.name || (name.includes('光照') ? '光照度' : name.includes('温') ? '环境温度' : name.includes('压') ? '管道压力' : '采集物理量'),
+        key: device.analogConfig?.key || (name.includes('光照') ? 'light_intensity' : name.includes('温') ? 'temperature' : name.includes('压') ? 'pressure' : 'analog_value'),
         signalType,
         voltageOrCurrentRange,
         physicalRange,
@@ -145,6 +205,7 @@ export function getDeviceProtocolInfo(device: any): DeviceProtocolInfo {
     if (device.modbusAttrs && Array.isArray(device.modbusAttrs) && device.modbusAttrs.length > 0) {
       registers = device.modbusAttrs.map((attr: any, idx: number) => ({
         name: attr.name || `属性 ${idx + 1}`,
+        key: attr.key || (attr.name?.includes('温') ? 'temperature' : attr.name?.includes('湿') ? 'humidity' : `attr_${idx + 1}`),
         functionCode: attr.funcCode || '0x03',
         addressHex: attr.startAddr ? (String(attr.startAddr).startsWith('0x') ? attr.startAddr : `0x${String(attr.startAddr).padStart(4, '0')}`) : `0x000${idx}`,
         addressDec: parseInt(attr.startAddr || `${idx}`, 16) || idx,

@@ -5,7 +5,16 @@ import { deviceTreeData } from '../data/deviceTree';
 import { deviceImageMap } from '../data/deviceImageMap';
 import { getDeviceImageUrl } from '../utils/deviceImages';
 import { getDeviceProtocolInfo } from '../utils/deviceProtocolHelper';
-import { useHeader } from '../context/HeaderContext';
+import { useHeader } from "../context/HeaderContext";
+import { 
+  initialUserProjects, 
+  initialSystemProjects, 
+  UserProjectItem, 
+  STORAGE_KEY_USER_PROJECTS, 
+  STORAGE_KEY_CUSTOM_DEVICES, 
+  isCurrentUser,
+  CURRENT_USER 
+} from "../data/userProjectList";
 
 const maskUserName = (name?: string): string => {
   if (!name) return '杨*邦';
@@ -21,6 +30,7 @@ const inferProtocol = (node: any, path: string): string => {
   if (text.includes("zigbee")) return "Zigbee";
   if (text.includes("lora")) return "Lora";
   if (text.includes("蓝牙") || text.includes("bluetooth") || text.includes("ble")) return "蓝牙";
+  if (text.includes("数字") || text.includes("digital")) return "数字量";
   if (text.includes("模拟") || text.includes("analog") || text.includes("模拟量")) return "模拟量";
   return "其他";
 };
@@ -76,16 +86,7 @@ const findNodeById = (nodes: any[], id: string): any => {
   return null;
 };
 
-const MOCK_PUBLIC_PROJECTS = [
-  { id: 1, name: '基于LoRa的智慧农场环境监控系统', category: '智慧农业', publisher: '杨**', time: '2025-10-10 22:14:56', type: '系统应用', views: 1250, image: 'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=500&h=300&fit=crop' },
-  { id: 2, name: '智能家居全屋控制中心', category: '智慧家居', publisher: '李**', time: '2025-10-09 14:20:12', type: '自定义应用', views: 890, image: 'https://images.unsplash.com/photo-1558002038-1055907df827?w=500&h=300&fit=crop' },
-  { id: 3, name: '城市智慧交通路口监控网络', category: '智慧交通', publisher: '王**', time: '2025-10-08 09:30:45', type: '系统应用', views: 3400, image: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=500&h=300&fit=crop' },
-  { id: 4, name: '工厂园区安防巡检系统', category: '智慧安防', publisher: '陈**', time: '2025-10-05 16:45:00', type: '自定义应用', views: 420, image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=500&h=300&fit=crop' },
-  { id: 5, name: '温室大棚温湿度自动调节', category: '智慧农业', publisher: '林**', time: '2025-10-01 11:10:30', type: '系统应用', views: 2100, image: 'https://images.unsplash.com/photo-1595841696677-6489ff3f8cd1?w=500&h=300&fit=crop' },
-  { id: 6, name: '智能停车场道闸控制', category: '智慧交通', publisher: '赵**', time: '2025-09-28 10:00:15', type: '自定义应用', views: 156, image: 'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=500&h=300&fit=crop' },
-  { id: 7, name: '智能仓储环境监测系统', category: '智慧安防', publisher: '周**', time: '2025-09-25 15:20:00', type: '自定义应用', views: 320, image: 'https://images.unsplash.com/photo-1586528116311-ad8ed7c42633?w=500&h=300&fit=crop' },
-  { id: 8, name: '智慧教室灯光环境调节', category: '智慧家居', publisher: '吴**', time: '2025-09-22 08:45:12', type: '系统应用', views: 1890, image: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=500&h=300&fit=crop' },
-];
+// 移除了硬编码的 MOCK_PUBLIC_PROJECTS，统一使用系统应用 + 当前用户已发布的自定义应用
 
 export default function HomePage() {
   const location = useLocation();
@@ -259,20 +260,86 @@ export default function HomePage() {
       alert('请输入应用名称');
       return;
     }
-    alert(`应用复制成功！"${copyProjectName}" 已添加至您的全部应用。`);
+    const newProject: UserProjectItem = {
+      id: Date.now(),
+      name: copyProjectName.trim(),
+      status: '未发布',
+      date: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      tag: projectToCopy?.tag || projectToCopy?.category || '自定义应用',
+      category: projectToCopy?.category || '自定义应用',
+      image: projectToCopy?.image || 'https://images.unsplash.com/photo-1558002038-1055907df827?w=600&h=380&fit=crop',
+      type: '自定义应用',
+      publisher: CURRENT_USER.maskedName,
+      creator: CURRENT_USER.name,
+      views: 0
+    };
+    const updated = [newProject, ...userProjectsList];
+    setUserProjectsList(updated);
+    try {
+      localStorage.setItem(STORAGE_KEY_USER_PROJECTS, JSON.stringify(updated));
+    } catch(e) {}
+    alert(`应用复制成功！"${copyProjectName}" 已添加至您的全部应用（初始为未发布状态）。`);
     setIsCopyModalOpen(false);
     setProjectToCopy(null);
   };
 
-  // Custom devices state
-  const [customDevicesList, setCustomDevicesList] = useState<any[]>([
-    { id: 'custom_1', name: '自定义温湿度传感器', image: '/device/RS485_Humiture_Thumbnail.png', type: '传感器', protocol: 'Modbus RTU', date: '2026-08-12', power: 'DC 12V / 24V', creator: '杨振邦' },
-    { id: 'custom_2', name: '智能灌溉阀门 (定制)', image: '/device/RS485_WaterPump_Thumbnail.png', type: '执行器', protocol: 'Zigbee', date: '2026-08-11', power: 'AC 220V', creator: '李晓峰' },
-    { id: 'custom_3', name: '边缘计算网关V2', image: '/device/UsrG771Gateway_Thumbnail.png', type: '网关', protocol: 'MQTT', date: '2026-08-10', power: 'DC 12V', creator: '王建国' },
-    { id: 'custom_4', name: '4-20mA 压力变送器 (定制)', image: '/device/NewLabCommon_Thumbnail.png', type: '传感器', protocol: '模拟量', date: '2026-08-05', power: 'DC 24V', creator: '张伟' },
-    { id: 'custom_5', name: '大功率工业继电器', image: '/device/Relay_DINRailCircuitBreaker1P_Thumbnail.png', type: '继电器', protocol: 'Modbus TCP', date: '2026-07-18', power: 'AC 380V', creator: '赵丽' },
-    { id: 'custom_6', name: '0-5V 模拟量照度传感器', image: '/device/RS485_Light_Thumbnail.png', type: '传感器', protocol: '模拟量', date: '2026-07-15', power: 'DC 12V', creator: '杨振邦' },
-  ]);
+  // Custom devices state (从 LocalStorage 读取当前用户设备)
+  const [customDevicesList, setCustomDevicesList] = useState<any[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_CUSTOM_DEVICES);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch(e) {
+      console.error(e);
+    }
+    return [
+      { id: 'custom_1', name: '自定义温湿度传感器', image: '/device/RS485_Humiture_Thumbnail.png', type: '传感器', protocol: 'Modbus RTU', date: '2026-08-12', power: 'DC 12V / 24V', creator: '杨振邦', publishToSimulation: true },
+      { id: 'custom_2', name: '智能灌溉阀门', image: '/device/RS485_WaterPump_Thumbnail.png', type: '执行器', protocol: 'Zigbee', date: '2026-08-11', power: 'AC 220V', creator: '杨振邦', publishToSimulation: true },
+      { id: 'custom_5', name: '大功率工业继电器', image: '/device/Relay_DINRailCircuitBreaker1P_Thumbnail.png', type: '继电器', protocol: 'Modbus TCP', date: '2026-07-18', power: 'AC 380V', creator: '杨振邦', publishToSimulation: true },
+    ];
+  });
+
+  // 用户项目列表（从 LocalStorage 读取）
+  const [userProjectsList, setUserProjectsList] = useState<UserProjectItem[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_USER_PROJECTS);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch(e) {
+      console.error(e);
+    }
+    return initialUserProjects;
+  });
+
+  // 跨页面 storage 与 focus 状态自动同步
+  useEffect(() => {
+    const handleSync = () => {
+      try {
+        const savedDevs = localStorage.getItem(STORAGE_KEY_CUSTOM_DEVICES);
+        if (savedDevs) {
+          const parsed = JSON.parse(savedDevs);
+          if (Array.isArray(parsed)) setCustomDevicesList(parsed);
+        }
+        const savedProjs = localStorage.getItem(STORAGE_KEY_USER_PROJECTS);
+        if (savedProjs) {
+          const parsed = JSON.parse(savedProjs);
+          if (Array.isArray(parsed)) setUserProjectsList(parsed);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    window.addEventListener('storage', handleSync);
+    window.addEventListener('focus', handleSync);
+    return () => {
+      window.removeEventListener('storage', handleSync);
+      window.removeEventListener('focus', handleSync);
+    };
+  }, []);
 
   const openCopyDeviceModal = (device: any) => {
     setDeviceToCopy(device);
@@ -290,11 +357,16 @@ export default function HomePage() {
       id: `custom_${Date.now()}`,
       name: copyDeviceName.trim(),
       date: new Date().toISOString().split('T')[0],
-      creator: '杨振邦',
+      creator: CURRENT_USER.name,
+      publishToSimulation: true,
       isCustom: true
     };
-    setCustomDevicesList(prev => [newDevice, ...prev]);
-    alert(`设备复制成功！"${copyDeviceName}" 已添加至您的自定义设备列表。`);
+    const updated = [newDevice, ...customDevicesList];
+    setCustomDevicesList(updated);
+    try {
+      localStorage.setItem(STORAGE_KEY_CUSTOM_DEVICES, JSON.stringify(updated));
+    } catch(e) {}
+    alert(`设备复制成功！"${copyDeviceName}" 已添加至您的自定义设备列表并已发布。`);
     setIsCopyDeviceModalOpen(false);
     setDeviceToCopy(null);
   };
@@ -305,25 +377,33 @@ export default function HomePage() {
   }, []);
 
   // Standardize custom devices into unified format
+  // 核心规则：只能看到自己发布的自定义设备，不能看到其他用户发布的，也不能看到未发布的！
   const formattedCustomDevices = useMemo(() => {
-    return customDevicesList.map(d => {
-      let inferredProto = d.protocol || '其他';
-      if (d.protocol) {
-        const p = d.protocol.toLowerCase();
-        if (p.includes('modbus') || p.includes('485') || p.includes('rtu') || p.includes('tcp')) inferredProto = 'Modbus';
-        else if (p.includes('模拟') || p.includes('analog') || p.includes('4-20ma') || p.includes('0-5v')) inferredProto = '模拟量';
-        else if (p.includes('zigbee')) inferredProto = 'Zigbee';
-        else if (p.includes('lora')) inferredProto = 'Lora';
-      }
-      return {
-        ...d,
-        inferredProtocol: inferredProto,
-        inferredType: d.type || '传感器',
-        categoryPath: '自定义设备',
-        creator: d.creator || '杨振邦',
-        isCustom: true
-      };
-    });
+    return customDevicesList
+      .filter(d => {
+        const isMine = isCurrentUser(d.creator) || !d.creator;
+        const isPublished = Boolean(d.publishToSimulation);
+        return isMine && isPublished;
+      })
+      .map(d => {
+        let inferredProto = d.protocol || '其他';
+        if (d.protocol) {
+          const p = d.protocol.toLowerCase();
+          if (p.includes('modbus') || p.includes('485') || p.includes('rtu') || p.includes('tcp')) inferredProto = 'Modbus';
+          else if (p.includes('数字') || p.includes('digital') || d.digitalConfig) inferredProto = '数字量';
+          else if (p.includes('模拟') || p.includes('analog') || p.includes('4-20ma') || p.includes('0-5v')) inferredProto = '模拟量';
+          else if (p.includes('zigbee')) inferredProto = 'Zigbee';
+          else if (p.includes('lora')) inferredProto = 'Lora';
+        }
+        return {
+          ...d,
+          inferredProtocol: inferredProto,
+          inferredType: d.type || '传感器',
+          categoryPath: '自定义设备',
+          creator: d.creator || CURRENT_USER.name,
+          isCustom: true
+        };
+      });
   }, [customDevicesList]);
 
   // Combine and filter devices based on selections
@@ -355,6 +435,7 @@ export default function HomePage() {
             if (p === 'Zigbee') return proto.toLowerCase().includes('zigbee');
             if (p === 'Lora') return proto.toLowerCase().includes('lora');
             if (p === '蓝牙') return proto.includes('蓝牙') || proto.toLowerCase().includes('ble');
+            if (p === '数字量') return proto.includes('数字');
             if (p === '模拟量') return proto.includes('模拟');
             return proto.includes(p);
           });
@@ -767,7 +848,7 @@ export default function HomePage() {
                           <div className="flex items-center gap-1.5 text-[11px]">
                             <button
                               onClick={() => {
-                                const allProtos = ['Modbus', 'Zigbee', '模拟量', '其他'];
+                                const allProtos = ['Modbus', 'Zigbee', '模拟量', '数字量', '其他'];
                                 if (customSelectedProtocols.length === allProtos.length) {
                                   setCustomSelectedProtocols([]);
                                 } else {
@@ -782,12 +863,13 @@ export default function HomePage() {
                         </div>
 
                         <div className="flex flex-col gap-1.5">
-                          {['Modbus', 'Zigbee', '模拟量', '其他'].map(proto => {
+                          {['Modbus', 'Zigbee', '模拟量', '数字量', '其他'].map(proto => {
                             const isChecked = customSelectedProtocols.includes(proto);
                             const count = formattedCustomDevices.filter(d => {
                               const p = d.inferredProtocol || d.protocol;
                               if (proto === 'Modbus') return p.toLowerCase().includes('modbus');
                               if (proto === 'Zigbee') return p.toLowerCase().includes('zigbee');
+                              if (proto === '数字量') return p.includes('数字');
                               if (proto === '模拟量') return p.includes('模拟');
                               return p.includes(proto);
                             }).length;
@@ -954,7 +1036,7 @@ export default function HomePage() {
                       <div className="flex items-center gap-3">
                         <span className="text-xs font-semibold text-gray-400 min-w-[65px]">通讯协议:</span>
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          {['全部协议', 'Modbus', 'Zigbee', '模拟量'].map(proto => (
+                          {['全部协议', 'Modbus', 'Zigbee', '模拟量', '数字量'].map(proto => (
                             <button
                               key={proto}
                               onClick={() => setActiveProtocol(proto)}
@@ -1281,15 +1363,32 @@ export default function HomePage() {
         )}
         
         {(activePrimaryNav === '仿真应用中心' || activePrimaryNav === '仿真应用大厅' || activePrimaryNav === '仿真项目大厅' || activePrimaryNav === '仿真应用' || activePrimaryNav === '仿真项目') && (() => {
-          const filteredProjects = MOCK_PUBLIC_PROJECTS.filter(project => {
+          // 核心规则：只能看到自己发布的自定义项目和系统内置应用，不能查看到其他用户发布的
+          const myPublishedCustomProjects = userProjectsList
+            .filter(p => {
+              const isMine = isCurrentUser(p.creator || p.publisher);
+              const isPublished = p.status === '已发布';
+              return isMine && isPublished;
+            })
+            .map(p => ({
+              ...p,
+              type: '自定义应用' as const,
+              publisher: CURRENT_USER.maskedName,
+              time: p.date,
+              views: p.views || 120
+            }));
+
+          const allVisibleProjects = [...initialSystemProjects, ...myPublishedCustomProjects];
+
+          const filteredProjects = allVisibleProjects.filter(project => {
             if (projectTypeFilter === '系统应用' && project.type !== '系统应用') return false;
             if (projectTypeFilter === '自定义应用' && project.type !== '自定义应用') return false;
             if (projectCategory !== '全部' && project.category !== projectCategory) return false;
             if (projectSearch.trim() && !project.name.toLowerCase().includes(projectSearch.toLowerCase().trim())) return false;
             return true;
           }).sort((a, b) => {
-            if (projectSort === '最多浏览') return b.views - a.views;
-            return new Date(b.time).getTime() - new Date(a.time).getTime();
+            if (projectSort === '最多浏览') return (b.views || 0) - (a.views || 0);
+            return new Date(b.time || b.date).getTime() - new Date(a.time || a.date).getTime();
           });
 
           const totalProjectPages = Math.ceil(filteredProjects.length / projectPageSize) || 1;
@@ -1427,7 +1526,7 @@ export default function HomePage() {
                           <div className="flex items-center gap-3 text-xs text-gray-500 mb-4 mt-1">
                              <span className="flex items-center gap-1.5"><User size={14}/> {project.publisher}</span>
                              <span className="text-gray-300">|</span>
-                             <span className="flex items-center gap-1.5"><Clock size={14}/> {project.time.split(' ')[0]}</span>
+                             <span className="flex items-center gap-1.5"><Clock size={14}/> {(project.time || project.date || '2026-08-12').split(' ')[0]}</span>
                           </div>
                           
                           <div className="mt-auto pt-4 border-t border-gray-50 flex items-center justify-between text-xs text-gray-500">
@@ -1648,7 +1747,7 @@ export default function HomePage() {
         {selectedDeviceDetail && (() => {
           const protocolInfo = getDeviceProtocolInfo(selectedDeviceDetail);
           const isCustomDevice = Boolean(selectedDeviceDetail.isCustom || String(selectedDeviceDetail.id || '').toLowerCase().startsWith('custom_') || (selectedDeviceDetail.categoryPath && selectedDeviceDetail.categoryPath.includes('自定义')));
-          const hasProtocolTab = protocolInfo.protocolCategory === 'modbus' || protocolInfo.protocolCategory === 'analog';
+          const hasProtocolTab = protocolInfo.protocolCategory === 'modbus' || protocolInfo.protocolCategory === 'analog' || protocolInfo.protocolCategory === 'digital';
 
           return (
             <div className="fixed inset-0 bg-black/65 z-[9999] flex items-center justify-center p-4 sm:p-6 backdrop-blur-sm animate-in fade-in duration-200">
@@ -1806,7 +1905,7 @@ export default function HomePage() {
                               <Zap size={14} className="text-blue-500" />
                               电气引脚定义
                             </div>
-                            {protocolInfo.protocolCategory === 'analog' ? (
+                            {(protocolInfo.protocolCategory === 'analog' || protocolInfo.protocolCategory === 'digital') ? (
                               <div className="grid grid-cols-3 gap-2 text-xs">
                                 <div className="bg-white p-2 rounded-lg border border-blue-100 shadow-2xs flex flex-col">
                                   <span className="font-mono font-bold text-red-600 text-[11px]">VS</span>
@@ -1818,7 +1917,7 @@ export default function HomePage() {
                                 </div>
                                 <div className="bg-white p-2 rounded-lg border border-blue-100 shadow-2xs flex flex-col">
                                   <span className="font-mono font-bold text-emerald-600 text-[11px]">SIGNAL</span>
-                                  <span className="text-[11px] text-gray-500 mt-0.5">模拟信号</span>
+                                  <span className="text-[11px] text-gray-500 mt-0.5">{protocolInfo.protocolCategory === 'digital' ? '数字信号 (0/1)' : '模拟信号'}</span>
                                 </div>
                               </div>
                             ) : (
@@ -1998,7 +2097,90 @@ export default function HomePage() {
                         </div>
                       )}
 
-                      {/* Sub-view: Analog Protocol */}
+                      
+                    {/* Sub-view: Digital Protocol */}
+                    {protocolInfo.protocolCategory === 'digital' && protocolInfo.digitalSignal && (
+                      <div className="space-y-5">
+                        <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-2xs space-y-4">
+                          <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+                            <div className="flex items-center gap-2">
+                              <Zap size={16} className="text-blue-500" />
+                              <span className="font-bold text-sm text-gray-800">数字量规格与逻辑电平</span>
+                            </div>
+                            <span className="text-xs bg-blue-50 text-blue-700 font-semibold px-2.5 py-0.5 rounded border border-blue-200">
+                              {protocolInfo.digitalSignal.signalType}
+                            </span>
+                          </div>
+
+                          {/* 属性与触发逻辑 */}
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div className="bg-blue-50/50 rounded-xl p-3.5 border border-blue-100 flex flex-col gap-1">
+                              <span className="text-xs font-semibold text-gray-500">检测属性名称</span>
+                              <span className="text-sm font-bold text-blue-900">{protocolInfo.digitalSignal.propertyName}</span>
+                            </div>
+                            <div className="bg-blue-50/50 rounded-xl p-3.5 border border-blue-100 flex flex-col gap-1">
+                              <span className="text-xs font-semibold text-gray-500">英文标识 (Key)</span>
+                              <span className="font-mono text-sm font-bold text-blue-600">{protocolInfo.digitalSignal.propertyKey || protocolInfo.digitalSignal.key || '-'}</span>
+                            </div>
+                            <div className="bg-blue-50/50 rounded-xl p-3.5 border border-blue-100 flex flex-col gap-1">
+                              <span className="text-xs font-semibold text-gray-500">触发逻辑与电平</span>
+                              <span className="text-sm font-bold text-blue-900">{protocolInfo.digitalSignal.triggerMode}</span>
+                            </div>
+                          </div>
+
+                          {/* 真值状态映射表 */}
+                          <div className="bg-gray-50 rounded-xl p-4 border border-gray-200/80 space-y-3">
+                            <span className="font-bold text-xs text-gray-800 flex items-center gap-1.5">
+                              <CheckCircle2 size={14} className="text-emerald-500" />
+                              数字量 0 / 1 状态对应表 (二值输出)
+                            </span>
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-left text-xs bg-white rounded-lg border border-gray-200 overflow-hidden">
+                                <thead className="bg-gray-100/80 text-gray-600 font-semibold text-[11px]">
+                                  <tr>
+                                    <th className="py-2 px-3">电平状态</th>
+                                    <th className="py-2 px-3">逻辑值</th>
+                                    <th className="py-2 px-3">状态物理含义</th>
+                                    <th className="py-2 px-3">典型应用场景</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                  {protocolInfo.digitalSignal.stateTable.map((row, idx) => (
+                                    <tr key={idx} className="hover:bg-blue-50/20">
+                                      <td className="py-2 px-3 font-mono font-medium text-gray-700">{row.level}</td>
+                                      <td className="py-2 px-3 font-mono font-bold text-blue-600">{row.logicVal}</td>
+                                      <td className="py-2 px-3 font-bold text-emerald-700">{row.stateMeaning}</td>
+                                      <td className="py-2 px-3 text-gray-500">{idx === 0 ? '静态待机/正常状态' : '传感器侦测触发/告警状态'}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+
+                          {/* 物理端口定义 */}
+                          <div className="bg-gray-50 rounded-xl p-4 border border-gray-200/80 space-y-2.5">
+                            <span className="font-bold text-xs text-gray-800 flex items-center gap-1.5">
+                              <Terminal size={14} className="text-purple-500" />
+                              默认接线端子定义 (三线制)
+                            </span>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                              {protocolInfo.digitalSignal.pins.map((pin, idx) => (
+                                <div key={idx} className="bg-white p-3 rounded-lg border border-gray-200 flex flex-col gap-1 shadow-2xs">
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-mono font-bold text-xs text-purple-700 uppercase">{pin.pin}</span>
+                                    <span className="text-[10px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded border border-purple-100 font-medium">{pin.name}</span>
+                                  </div>
+                                  <span className="text-[11px] text-gray-500">{pin.desc}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Sub-view: Analog Protocol */}
                       {protocolInfo.protocolCategory === 'analog' && protocolInfo.analogFormula && (
                         <div className="space-y-5">
                           <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-2xs space-y-4">
