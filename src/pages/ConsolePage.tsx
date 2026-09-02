@@ -1553,7 +1553,11 @@ export default function ConsolePage() {
           const created = {
             ...newDevice,
             id: `custom_${Date.now()}`,
-            date: new Date().toISOString().replace('T', ' ').substring(0, 16)
+            userName: '杨振邦',
+            creator: '杨振邦',
+            phone: '15396005420',
+            date: new Date().toISOString().replace('T', ' ').substring(0, 16),
+            publishStatus: newDevice.publishToSimulation ? 'published' : 'unpublished'
           };
           setCustomDeviceList(prev => [created, ...prev]);
         }}

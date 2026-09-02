@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, UploadCloud, Check, Plus, Edit2, Trash2, Shield, Settings, Info, Zap, Layers, Play, Square, CheckCircle2, Eye, Terminal } from 'lucide-react';
+import { X, UploadCloud, Check, Plus, Edit2, Trash2, Shield, Settings, Info, Zap, Layers, Play, Square, CheckCircle2, Eye, Terminal, Activity } from 'lucide-react';
 
 interface Props {
   isOpen: boolean;
