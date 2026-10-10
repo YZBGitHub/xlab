@@ -1,5 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { X, UploadCloud, Check, Plus, Edit2, Trash2, Shield, Settings, Info, Zap, Layers, Play, Square, CheckCircle2, Eye, Terminal, Activity } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { 
+  X, UploadCloud, Check, Plus, Edit2, Trash2, Shield, Settings, 
+  Info, Zap, Layers, Play, Square, CheckCircle2, Eye, Terminal, 
+  Activity, Search, FolderOpen, ChevronDown, ChevronUp, Image as ImageIcon,
+  RotateCcw
+} from 'lucide-react';
+import { 
+  DeviceMaterial, 
+  initialDeviceMaterials, 
+  materialCategories, 
+  commonMaterialTags 
+} from '../data/defaultMaterials';
 
 interface Props {
   isOpen: boolean;
@@ -265,13 +276,113 @@ function FormInput({ label, value, onChange, placeholder = '' }: { label: string
 
 // --- Step Flows ---
 function Step1BasicInfo({ data, update }: any) {
+  const [isMaterialDrawerOpen, setIsMaterialDrawerOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('全部');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 从 localStorage 获取素材列表，保持与素材管理实时同步
+  const [materials] = useState<DeviceMaterial[]>(() => {
+    try {
+      const saved = localStorage.getItem('xlab_device_materials');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.error('Failed to load materials from localStorage', e);
+    }
+    return initialDeviceMaterials;
+  });
+
+  // 处理自定义图片文件上传 (转 base64)
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      alert('请上传有效的图片文件（支持 PNG、JPG、SVG 等）');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (uploadEvent) => {
+      const result = uploadEvent.target?.result as string;
+      if (result) {
+        update({ image: result });
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  // 拖拽上传
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      alert('请上传有效的图片文件');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (uploadEvent) => {
+      const result = uploadEvent.target?.result as string;
+      if (result) {
+        update({ image: result });
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // 选中素材
+  const handleSelectMaterial = (item: DeviceMaterial) => {
+    const updatePayload: any = { image: item.image };
+    // 若当前未输入设备名称，贴心默认带入素材名称
+    if (!data.name || data.name.trim() === '') {
+      updatePayload.name = item.name;
+    }
+    update(updatePayload);
+  };
+
+  // 检索过滤素材
+  const filteredMaterials = useMemo(() => {
+    return materials.filter(item => {
+      // 关键字检索 (名称、描述、标签)
+      if (searchQuery.trim()) {
+        const query = searchQuery.trim().toLowerCase();
+        const matchName = item.name.toLowerCase().includes(query);
+        const matchDesc = item.description?.toLowerCase().includes(query);
+        const matchTags = item.tags.some(t => t.toLowerCase().includes(query));
+        if (!matchName && !matchDesc && !matchTags) return false;
+      }
+
+      // 分类检索
+      if (selectedCategory !== '全部') {
+        if (item.category !== selectedCategory) return false;
+      }
+
+      // 标签检索
+      if (selectedTags.length > 0) {
+        const hasAllTags = selectedTags.every(t => item.tags.includes(t));
+        if (!hasAllTags) return false;
+      }
+
+      return true;
+    });
+  }, [materials, searchQuery, selectedCategory, selectedTags]);
+
+  // 检查当前设备图片是否为素材库中的素材
+  const matchedMaterial = materials.find(m => m.image === data.image);
+
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
       <div>
         <h4 className="text-lg font-bold text-gray-800 mb-1">基础信息</h4>
-        <p className="text-sm text-gray-500">填写设备的名称、上传展示图片并选择基础类型。</p>
+        <p className="text-sm text-gray-500">填写设备的名称、设置展示图片并选择基础类型。</p>
       </div>
+
       <div className="space-y-6">
+        {/* 设备名称 */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">设备名称 <span className="text-red-500">*</span></label>
           <input 
@@ -282,12 +393,289 @@ function Step1BasicInfo({ data, update }: any) {
             className="w-full max-w-md border border-gray-200 rounded-md px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
           />
         </div>
+
+        {/* 设备图片与素材库选择 */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">设备图片 <span className="text-red-500">*</span></label>
-          <div className="w-32 h-32">
-            <ImageUploadBox label="点击上传封面图" />
+          <div className="flex items-center justify-between max-w-2xl mb-2">
+            <label className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
+              <span>设备图片</span>
+              <span className="text-red-500">*</span>
+              <span className="text-xs text-gray-400 font-normal ml-2">默认为自定义上传，亦可从素材库一键选用</span>
+            </label>
+            {/* 从素材库中选择按钮 */}
+            <button
+              type="button"
+              onClick={() => setIsMaterialDrawerOpen(!isMaterialDrawerOpen)}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all flex items-center gap-1.5 shadow-xs ${
+                isMaterialDrawerOpen
+                  ? 'bg-blue-600 text-white border-blue-600 ring-2 ring-blue-100'
+                  : 'bg-white border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300'
+              }`}
+            >
+              <FolderOpen size={14} />
+              <span>从素材库中选择</span>
+              <ChevronDown 
+                size={14} 
+                className={`transition-transform duration-200 ${isMaterialDrawerOpen ? 'rotate-180' : ''}`} 
+              />
+            </button>
+          </div>
+
+          {/* 隐藏的真实文件 input */}
+          <input 
+            ref={fileInputRef}
+            type="file" 
+            accept="image/*" 
+            className="hidden" 
+            onChange={handleFileChange} 
+          />
+
+          {/* 图片展示/自定义上传区 */}
+          <div className="max-w-2xl">
+            {data.image ? (
+              <div className="p-3.5 bg-gray-50/80 border border-gray-200 rounded-xl flex items-center gap-4">
+                <div className="relative w-24 h-24 bg-white rounded-lg border border-gray-200 p-1 flex items-center justify-center shrink-0 shadow-inner group">
+                  <img 
+                    src={data.image} 
+                    alt="设备封面" 
+                    className="w-full h-full object-contain" 
+                  />
+                  <button
+                    type="button"
+                    onClick={() => update({ image: null })}
+                    title="移除图片"
+                    className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-md transition-colors"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+
+                <div className="flex-1 space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-gray-700">当前设备图片</span>
+                    {matchedMaterial ? (
+                      <span className="text-[11px] bg-blue-50 text-blue-600 border border-blue-200 px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
+                        <FolderOpen size={11} /> 选用素材：{matchedMaterial.name}
+                      </span>
+                    ) : (
+                      <span className="text-[11px] bg-emerald-50 text-emerald-600 border border-emerald-200 px-2 py-0.5 rounded-full font-medium">
+                        自定义本地上传
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-400">
+                    该图片将作为设备在拓扑画布、设备详情大屏及仿真清单中的展示缩略图。
+                  </p>
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="px-2.5 py-1 text-xs bg-white border border-gray-200 text-gray-600 hover:text-blue-600 hover:border-blue-300 rounded-md transition-colors flex items-center gap-1"
+                    >
+                      <UploadCloud size={12} /> 重新上传本地图片
+                    </button>
+                    {!isMaterialDrawerOpen && (
+                      <button
+                        type="button"
+                        onClick={() => setIsMaterialDrawerOpen(true)}
+                        className="px-2.5 py-1 text-xs bg-white border border-blue-200 text-blue-600 hover:bg-blue-50 rounded-md transition-colors flex items-center gap-1"
+                      >
+                        <FolderOpen size={12} /> 更换素材库图片
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* 默认自定义上传卡片 */
+              <div 
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={handleDrop}
+                className="border-2 border-dashed border-gray-200 hover:border-blue-500 hover:bg-blue-50/30 rounded-xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition-all group bg-gray-50/50"
+              >
+                <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-500 group-hover:scale-110 flex items-center justify-center mb-2 transition-transform shadow-xs">
+                  <UploadCloud size={20} />
+                </div>
+                <div className="text-xs font-semibold text-gray-700 group-hover:text-blue-600 transition-colors">
+                  点击上传自定义封面图，或拖拽文件至此
+                </div>
+                <div className="text-[11px] text-gray-400 mt-1">
+                  支持 PNG, JPG, SVG 格式，亦可点击右上角「从素材库中选择」一键选用标准物料
+                </div>
+              </div>
+            )}
+
+            {/* 点击之后往下方侧展开显示窗口：设备素材图文列表 */}
+            {isMaterialDrawerOpen && (
+              <div className="mt-3.5 border border-blue-200 bg-gradient-to-b from-blue-50/40 via-white to-gray-50/40 rounded-xl p-4 shadow-md space-y-3.5 animate-in fade-in slide-in-from-top-3 duration-200">
+                {/* 视窗头部 */}
+                <div className="flex items-center justify-between pb-2.5 border-b border-gray-100">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                    <span className="text-xs font-bold text-gray-800">设备素材库</span>
+                    <span className="text-[11px] text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-full font-medium">
+                      共 {materials.length} 款素材物料（已过滤出 {filteredMaterials.length} 项）
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsMaterialDrawerOpen(false)}
+                    className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100 transition-colors"
+                  >
+                    <ChevronUp size={13} />
+                    <span>收起窗口</span>
+                  </button>
+                </div>
+
+                {/* 检索栏 1: 关键字检索 */}
+                <div className="relative">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="输入关键字检索素材名称、描述或标签..."
+                    className="w-full pl-8.5 pr-8 py-1.5 text-xs bg-white border border-gray-200 rounded-lg outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-xs transition-all"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      <X size={13} />
+                    </button>
+                  )}
+                </div>
+
+                {/* 检索栏 2: 分类检索 */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-xs font-medium text-gray-500 shrink-0">分类：</span>
+                  {materialCategories.map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setSelectedCategory(cat)}
+                      className={`px-2.5 py-0.5 text-xs rounded-md transition-all font-medium ${
+                        selectedCategory === cat
+                          ? 'bg-blue-500 text-white shadow-xs'
+                          : 'bg-white border border-gray-200 text-gray-600 hover:border-blue-300 hover:text-blue-600'
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+
+                {/* 检索栏 3: 标签检索 */}
+                <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                  <span className="text-xs font-medium text-gray-500 shrink-0">标签：</span>
+                  {commonMaterialTags.slice(0, 14).map((tag) => {
+                    const isSelected = selectedTags.includes(tag);
+                    return (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => {
+                          if (isSelected) {
+                            setSelectedTags(selectedTags.filter((t) => t !== tag));
+                          } else {
+                            setSelectedTags([...selectedTags, tag]);
+                          }
+                        }}
+                        className={`px-2 py-0.5 text-[11px] rounded-full transition-all border ${
+                          isSelected
+                            ? 'bg-blue-100 text-blue-700 border-blue-400 font-semibold'
+                            : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        #{tag}
+                      </button>
+                    );
+                  })}
+                  {selectedTags.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTags([])}
+                      className="text-[11px] text-blue-600 hover:underline ml-1"
+                    >
+                      清空标签
+                    </button>
+                  )}
+                </div>
+
+                {/* 设备素材图文列表 */}
+                <div className="border border-gray-200 rounded-lg p-2.5 bg-white max-h-[290px] overflow-y-auto custom-scrollbar shadow-inner">
+                  {filteredMaterials.length === 0 ? (
+                    <div className="py-10 text-center text-gray-400 text-xs space-y-2">
+                      <div>未找到符合筛选条件的设备素材</div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchQuery('');
+                          setSelectedCategory('全部');
+                          setSelectedTags([]);
+                        }}
+                        className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded text-xs transition-colors"
+                      >
+                        重置所有筛选条件
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5">
+                      {filteredMaterials.map((item) => {
+                        const isSelected = data.image === item.image;
+                        return (
+                          <div
+                            key={item.id}
+                            onClick={() => handleSelectMaterial(item)}
+                            className={`group relative p-2 rounded-lg border transition-all cursor-pointer flex flex-col justify-between ${
+                              isSelected
+                                ? 'border-blue-500 bg-blue-50/50 ring-2 ring-blue-300 shadow-sm'
+                                : 'border-gray-200 bg-white hover:border-blue-400 hover:shadow-md hover:-translate-y-0.5'
+                            }`}
+                          >
+                            {isSelected && (
+                              <div className="absolute top-1.5 right-1.5 w-5 h-5 bg-blue-500 text-white rounded-full flex items-center justify-center shadow-sm z-10">
+                                <Check size={12} strokeWidth={3} />
+                              </div>
+                            )}
+                            <div className="w-full h-18 bg-gray-50 rounded flex items-center justify-center p-1 overflow-hidden">
+                              <img
+                                src={item.image}
+                                alt={item.name}
+                                className="w-full h-full object-contain group-hover:scale-105 transition-transform"
+                              />
+                            </div>
+                            <div className="mt-2">
+                              <div 
+                                className="text-xs font-semibold text-gray-800 truncate group-hover:text-blue-600 transition-colors" 
+                                title={item.name}
+                              >
+                                {item.name}
+                              </div>
+                              <div className="flex items-center gap-1 mt-1 text-[10px] text-gray-400">
+                                <span className="bg-gray-100 text-gray-600 px-1 py-0.2 rounded truncate">
+                                  {item.category}
+                                </span>
+                                {item.tags[0] && (
+                                  <span className="truncate text-gray-400">#{item.tags[0]}</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
+
+        {/* 设备类型 */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">设备类型 <span className="text-red-500">*</span></label>
           <div className="flex gap-4">
