@@ -6,6 +6,31 @@ export default function AgentWidget() {
   const [isCentered, setIsCentered] = useState(false);
   const [messages, setMessages] = useState<{role: 'user' | 'assistant', content: string}[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [viewport, setViewport] = useState({ width: window.innerWidth, height: window.innerHeight });
+  const [position, setPosition] = useState({ x: Math.max(12, window.innerWidth - 80), y: Math.max(12, window.innerHeight - 80) });
+  const [isDragging, setIsDragging] = useState(false);
+  const drag = useRef<{ pointerId: number; startX: number; startY: number; x: number; y: number } | null>(null);
+  const suppressClick = useRef(false);
+  const clampPosition = (x: number, y: number) => ({
+    x: Math.max(12, Math.min(x, Math.max(12, window.innerWidth - 68))),
+    y: Math.max(12, Math.min(y, Math.max(12, window.innerHeight - 68))),
+  });
+
+  useEffect(() => {
+    const resize = () => {
+      setViewport({ width: window.innerWidth, height: window.innerHeight });
+      setPosition(previous => clampPosition(previous.x, previous.y));
+    };
+    window.addEventListener('resize', resize);
+    return () => window.removeEventListener('resize', resize);
+  }, []);
+
+  const popupWidth = Math.min(420, viewport.width - 24);
+  const popupHeight = Math.min(600, viewport.height - 24);
+  const popupPosition = {
+    left: Math.max(12, Math.min(position.x + 56 - popupWidth, viewport.width - popupWidth - 12)),
+    top: Math.max(12, Math.min(position.y >= popupHeight + 24 ? position.y - popupHeight - 12 : position.y + 68, viewport.height - popupHeight - 12)),
+  };
 
   useEffect(() => {
     const handleOpen = () => {
@@ -54,10 +79,13 @@ export default function AgentWidget() {
 
       {/* Chat Popup */}
       <div 
+        data-agent-popup
+        aria-hidden={!isOpen}
+        style={isCentered ? undefined : popupPosition}
         className={`fixed z-[9999] bg-white shadow-2xl border border-gray-100 flex flex-col overflow-hidden transition-all duration-300 ${
           isCentered 
             ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-2xl w-[600px] h-[700px]' 
-            : 'bottom-24 right-6 rounded-2xl w-[420px] h-[600px] origin-bottom-right'
+            : 'rounded-2xl w-[420px] h-[600px] max-w-[calc(100vw-24px)] max-h-[calc(100vh-24px)] origin-bottom-right'
         } ${
           isOpen 
             ? 'opacity-100 scale-100' 
@@ -151,13 +179,40 @@ export default function AgentWidget() {
       </div>
 
       {/* Floating Toggle Button */}
-      <div className="fixed bottom-6 right-6 z-[9999] flex flex-col items-end">
+      <div className="fixed z-[9999] flex flex-col items-end" style={{ left: position.x, top: position.y }}>
         <button
-          onClick={handleToggle}
-          className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 ${
-            isOpen && !isCentered ? 'bg-gray-200 text-gray-600 hover:bg-gray-300' : 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white hover:shadow-blue-500/30 hover:scale-105 hover:-translate-y-1'
+          type="button"
+          aria-label="仿真智能体"
+          aria-expanded={isOpen}
+          onPointerDown={event => {
+            if (event.button !== 0 || !event.isPrimary) return;
+            suppressClick.current = false;
+            drag.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, x: position.x, y: position.y };
+            event.currentTarget.setPointerCapture(event.pointerId);
+          }}
+          onPointerMove={event => {
+            const current = drag.current;
+            if (!current || current.pointerId !== event.pointerId) return;
+            const deltaX = event.clientX - current.startX;
+            const deltaY = event.clientY - current.startY;
+            if (!suppressClick.current && Math.hypot(deltaX, deltaY) < 5) return;
+            suppressClick.current = true;
+            setIsDragging(true);
+            setPosition(clampPosition(current.x + deltaX, current.y + deltaY));
+          }}
+          onPointerUp={event => {
+            if (drag.current?.pointerId !== event.pointerId) return;
+            drag.current = null;
+            setIsDragging(false);
+            if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+          }}
+          onPointerCancel={() => { drag.current = null; suppressClick.current = true; setIsDragging(false); }}
+          onLostPointerCapture={() => { drag.current = null; setIsDragging(false); }}
+          onClick={event => { if (event.detail !== 0 && suppressClick.current) { event.preventDefault(); return; } handleToggle(); }}
+          className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-colors duration-300 touch-none select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'} ${
+            isOpen && !isCentered ? 'bg-gray-200 text-gray-600 hover:bg-gray-300' : 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white hover:shadow-blue-500/30'
           }`}
-          title="仿真智能体"
+          title="点击打开仿真智能体，按住左键拖动位置"
         >
           {isOpen && !isCentered ? <X size={24} /> : <Bot size={28} />}
         </button>

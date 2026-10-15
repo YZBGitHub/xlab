@@ -1,19 +1,23 @@
 import { 
-  Settings, Search, ChevronRight, ChevronUp,
-  MousePointer2, Type, Image, Undo, Redo, 
-  Eye, FileText, Cloud, Clock, ChevronDown, UserCircle2,
-  Grid3X3, ArrowRightLeft, AlignLeft, Layers, Plus,
-  Box, LayoutGrid, List, Sparkles, AlertCircle, Activity, Filter
+  Settings, Search, ChevronRight, ChevronUp, Play, Save, Upload,
+  Eye, FileText, Clock, ChevronDown,
+  Grid3X3, AlignLeft, Layers, Plus, ZoomIn, ZoomOut,
+  Box, LayoutGrid, List, Sparkles, Activity, Filter, SlidersHorizontal,
+  HelpCircle, MessageCircle, RotateCcw, Bug, Network, Braces, Cable,
+  Monitor, Boxes, AlertTriangle, ArrowRight, Wifi, WifiOff, Cpu,
+  Server, Pencil, Check, X, PlugZap, PanelLeftClose, PanelLeftOpen, RefreshCw, MousePointer2, GripVertical, LoaderCircle
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, createContext, useContext } from 'react';
 
 import AddCustomDeviceModal from '../components/AddCustomDeviceModal';
 import QuickDeviceCenterModal from '../components/QuickDeviceCenterModal';
 import { deviceTreeData } from '../data/deviceTree';
+import isa850Devices from '../data/isa850Devices.json';
 import { getDeviceImageUrl } from '../utils/deviceImages';
 import { useDraggable } from '../hooks/useDraggable';
 import { useHeader } from '../context/HeaderContext';
+import { ConnectionCanvas, ConnectionPort, ConnectionProvider, ConnectionTools, useConnections } from '../components/ConnectionEditor';
 
 const DeviceImage = ({ deviceId, customImage, alt, className }: { deviceId?: string, customImage?: string, alt?: string, className?: string }) => {
   const [errorStatus, setErrorStatus] = useState<0 | 1 | 2>(0);
@@ -89,6 +93,69 @@ const ProtocolBadge = ({ protocol }: { protocol: string }) => {
   );
 };
 
+type DesignMode = 'simulation' | 'twin';
+type HardwareAgentConfig = { ip: string; port: string; agent: string };
+type CanvasDevice = { id: string; name: string; imageId: string; image?: string; sourceDeviceId?: number };
+const DeviceSelectionContext = createContext({ selectedIds: [] as string[], deletedIds: [] as string[], select: (_id: string, _additive = false) => {} });
+const defaultCanvasDevices: CanvasDevice[] = isa850Devices.map(device => ({ id: device.id, name: device.name, imageId: device.id, image: device.image || undefined }));
+const wiredDeviceIds = ['isa850-3', 'isa850-14', 'isa850-37', 'isa850-40'];
+const initialProjectDevices = [
+  ...wiredDeviceIds.map(id => isa850Devices.find(device => device.id === id)!),
+  ...isa850Devices.filter(device => !wiredDeviceIds.includes(device.id)),
+];
+const initialProjectConnections = wiredDeviceIds.slice(1).flatMap((target, index) =>
+  ['red', 'black', 'blue', 'green'].map(color => ({
+    id: `isa850-wire-${index}-${color}`,
+    source: { node: wiredDeviceIds[index], port: `bottom-${color}` },
+    target: { node: target, port: `bottom-${color}` },
+  }))
+);
+
+const modeDetails: Record<DesignMode, { label: string; shortLabel: string; description: string }> = {
+  simulation: {
+    label: '虚拟仿真模式',
+    shortLabel: '虚拟仿真',
+    description: '作为物理设备的仿真形态，仿真物理设备产生模拟数据，具备连线验证、配置等仿真功能。',
+  },
+  twin: {
+    label: '数字孪生模式',
+    shortLabel: '数字孪生',
+    description: '作为物理设备的展示形态，同步展示已经连接到虚拟仿真平台的物理设备的数值、状态以及配置。',
+  },
+};
+
+type SouthboundDevice = {
+  id: number;
+  name: string;
+  address: number;
+  value: string;
+  linkedDevice: string;
+  serialPort: string;
+  protocol: string;
+};
+
+const initialSouthboundDevices: SouthboundDevice[] = [
+  { id: 1, name: '温湿度变送器（485型）', address: 1, value: '温度 25.6℃ · 湿度 58.2%', linkedDevice: '温湿度传感器 HA_61' },
+  { id: 2, name: '联动控制器', address: 2, value: 'DO1 关闭 · DO2 开启', linkedDevice: '智能水泵执行器' },
+  { id: 3, name: '开关量烟雾探测器', address: 3, value: '烟雾浓度 正常', linkedDevice: '烟雾传感器' },
+  { id: 4, name: '超声波传感器（485型）', address: 4, value: '距离 126 cm', linkedDevice: '超声波测距节点' },
+  { id: 5, name: '光照度变送器（485型）', address: 5, value: '光照度 680 lx', linkedDevice: '光照传感器' },
+  { id: 6, name: '二氧化碳变送器（485型）', address: 6, value: 'CO₂ 487 ppm', linkedDevice: '空气质量节点' },
+  { id: 7, name: '高频读写器', address: 7, value: '读卡状态 待机', linkedDevice: 'RFID 读写节点' },
+  { id: 8, name: '矩阵键盘模块', address: 8, value: '按键状态 无输入', linkedDevice: '门禁读卡键盘' },
+  { id: 9, name: '物联网中心网关', address: 10, value: '上行状态 在线', linkedDevice: '边缘计算网关 USR-G771' },
+  { id: 10, name: '4G数传终端', address: 11, value: '信号强度 26 CSQ', linkedDevice: '4G 通信节点' },
+  { id: 11, name: '频闪指示灯（红）', address: 12, value: '亮度 80% · 闪烁关闭', linkedDevice: '告警指示灯' },
+  { id: 12, name: '电磁阀', address: 13, value: '阀门状态 关闭', linkedDevice: '阀门执行器' },
+  { id: 13, name: 'ZigBee智能节点盒', address: 14, value: '节点在线 · 信号 -52 dBm', linkedDevice: 'ZigBee智能节点盒' },
+].map(device => {
+  if ([4, 5, 6].includes(device.id)) return { ...device, serialPort: '串口 B', protocol: 'RS485' };
+  if ([7, 8].includes(device.id)) return { ...device, serialPort: 'RS232 串口', protocol: 'RS232' };
+  if ([9, 10].includes(device.id)) return { ...device, serialPort: '以太网接口', protocol: 'Modbus-TCP' };
+  if (device.id === 13) return { ...device, serialPort: '无线接口', protocol: 'Zigbee' };
+  return { ...device, serialPort: '串口 A', protocol: 'RS485' };
+});
+
 const getAllLeafNodes = (nodes: any[], currentPath: string = ''): any[] => {
   let leaves: any[] = [];
   nodes.forEach(node => {
@@ -123,6 +190,80 @@ export default function DesignPage() {
   const [activeDeviceTab, setActiveDeviceTab] = useState<'system' | 'custom'>('system');
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [designMode, setDesignMode] = useState<DesignMode>('simulation');
+  const [pendingMode, setPendingMode] = useState<DesignMode | null>(null);
+  const [modeCountdown, setModeCountdown] = useState(3);
+  const [agentConfig, setAgentConfig] = useState<HardwareAgentConfig>({
+    ip: '192.168.1.188',
+    port: '9000',
+    agent: '中心网关智能体',
+  });
+  const [agentConnected, setAgentConnected] = useState(true);
+  const [isAgentConfigOpen, setIsAgentConfigOpen] = useState(false);
+  const [experimentRunning, setExperimentRunning] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [panelWidth, setPanelWidth] = useState(50);
+  const [selectedDeviceIds, setSelectedDeviceIds] = useState<string[]>([]);
+  const [deletedDeviceIds, setDeletedDeviceIds] = useState<string[]>([]);
+  const workspaceRef = useRef<HTMLDivElement>(null);
+
+  const selectCanvasDevice = (id: string) => {
+    setSelectedDeviceIds([id]);
+    const canvas = workspaceRef.current?.querySelector('.design-canvas');
+    const nodes = (canvas?.querySelectorAll('[data-device-id]') || []) as ArrayLike<HTMLElement>;
+    const node = Array.from(nodes).find(element => element.dataset.deviceId === id);
+    if (canvas && node) {
+      (canvas as HTMLElement).focus({ preventScroll: true });
+      const bounds = node.getBoundingClientRect();
+      const viewport = canvas.getBoundingClientRect();
+      canvas.scrollBy({ left: bounds.left - viewport.left - (viewport.width - bounds.width) / 2, top: bounds.top - viewport.top - (viewport.height - bounds.height) / 2, behavior: 'smooth' });
+    }
+  };
+
+  useEffect(() => {
+    if (!pendingMode) return;
+    setModeCountdown(3);
+    const timer = window.setInterval(() => {
+      setModeCountdown(previous => {
+        if (previous <= 1) {
+          window.clearInterval(timer);
+          return 0;
+        }
+        return previous - 1;
+      });
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [pendingMode]);
+
+  const requestModeChange = (nextMode: DesignMode) => {
+    if (nextMode !== designMode) setPendingMode(nextMode);
+  };
+
+  const confirmModeChange = () => {
+    if (!pendingMode || modeCountdown > 0) return;
+    setDesignMode(pendingMode);
+    setExperimentRunning(false);
+    setPendingMode(null);
+  };
+
+  const isTwinMode = designMode === 'twin';
+  const canStartExperiment = !isTwinMode || agentConnected;
+
+  const handleExperimentToggle = () => {
+    if (!canStartExperiment) return;
+    setExperimentRunning(previous => !previous);
+  };
+
+  const handleAgentConnect = (nextConfig: HardwareAgentConfig) => {
+    setAgentConfig(nextConfig);
+    setAgentConnected(true);
+    setIsAgentConfigOpen(false);
+  };
+
+  const handleAgentDisconnect = () => {
+    setAgentConnected(false);
+    setExperimentRunning(false);
+  };
   
   // Expanded top-level categories (Level 1)
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({
@@ -152,11 +293,15 @@ export default function DesignPage() {
   }, [location.state]);
 
   const { isHeaderVisible, hideHeader } = useHeader();
-  const [projectName, setProjectName] = useState('默认仿真工程');
+  const [projectName, setProjectName] = useState('NLE-ISA850 国标版实训工程');
 
   // Canvas nodes
   const [addedNodes, setAddedNodes] = useState<any[]>([]);
-  const [nodeOffsets, setNodeOffsets] = useState<Record<string, {x: number, y: number}>>({});
+  const deleteCanvasDevices = (ids: string[]) => {
+    setAddedNodes(previous => previous.filter((node, index) => !ids.includes(node.uniqueId || `${node.id}-${index}`)));
+    setDeletedDeviceIds(previous => [...new Set([...previous, ...ids.filter(id => defaultCanvasDevices.some(device => device.id === id))])]);
+    setSelectedDeviceIds(previous => previous.filter(id => !ids.includes(id)));
+  };
 
   // Initialize imported devices in a neat side-by-side / grid layout without wires
   useEffect(() => {
@@ -170,7 +315,7 @@ export default function DesignPage() {
           const col = index % 4;
           const row = Math.floor(index / 4);
           const x = 70 + col * 260;
-          const y = 80 + row * 220;
+          const y = 140 + row * 240;
           formattedNodes.push({
             ...dev,
             uniqueId: `imported_${dev.id}_${index}_${Date.now()}`,
@@ -186,9 +331,6 @@ export default function DesignPage() {
     }
   }, [importedCase]);
 
-  const handleNodeDrag = (id: string) => (pos: {x: number, y: number}) => {
-    setNodeOffsets(prev => ({...prev, [id]: pos}));
-  };
 
   // Extract all devices
   const allDevices = useMemo(() => getAllLeafNodes(deviceTreeData), []);
@@ -251,6 +393,31 @@ export default function DesignPage() {
     setAddedNodes(prev => [...prev, newDevice]);
   };
 
+  const handleGenerateSimulation = (device: SouthboundDevice): string => {
+    const uniqueId = `twin_${device.id}`;
+    const sourceDevice = isa850Devices.find(item => item.name === device.name);
+    const imageIds = ['RS485_Humiture', 'OnOff_Relay', 'OnOff_Smoke', 'RS485_Ultrasonic', 'RS485_Illumination', 'RS485_CO2', 'NewLabCommon', 'Other_XC40_DoorControl', 'UsrG771Gateway', 'UsrG771Gateway', 'NewLabCommon', 'RS485_WaterPump'];
+    const viewportWidth = workspaceRef.current?.querySelector('.design-canvas')?.clientWidth || 600;
+    const columns = Math.max(1, Math.floor((viewportWidth - 80) / 200));
+    setAddedNodes(previous => {
+      const existing = previous.find(node => node.uniqueId === uniqueId);
+      const generatedCount = previous.filter(node => node.sourceDeviceId !== undefined).length;
+      const baseY = Math.max(importedCase ? 60 : 485 + Math.ceil((isa850Devices.length - wiredDeviceIds.length) / 5) * 220, ...previous.filter(node => node.sourceDeviceId === undefined).map(node => (node.y || 0) + 260));
+      const node = {
+        id: imageIds[device.id - 1] || 'NewLabCommon', uniqueId,
+        image: sourceDevice?.image || undefined,
+        name: device.name, sourceDeviceId: device.id,
+        ports: device.protocol === 'RS485' ? ['bottom-red', 'bottom-black', 'bottom-blue', 'bottom-green'] : [],
+        categoryPath: `${device.serialPort} / ${device.protocol} · 地址 ${device.address}`,
+        modbusAttrs: [{ name: 'Modbus 地址', value: String(device.address), unit: '' }, { name: '当前数值', value: device.value, unit: '' }],
+        x: existing?.x ?? 50 + (generatedCount % columns) * 200,
+        y: existing?.y ?? baseY + Math.floor(generatedCount / columns) * 230,
+      };
+      return existing ? previous.map(item => item.uniqueId === uniqueId ? node : item) : [...previous, node];
+    });
+    return uniqueId;
+  };
+
   const handleDragStartFromSidebar = (e: React.DragEvent, device: any) => {
     e.dataTransfer.setData('application/json', JSON.stringify(device));
   };
@@ -262,8 +429,8 @@ export default function DesignPage() {
     try {
       const device = JSON.parse(raw);
       const rect = e.currentTarget.getBoundingClientRect();
-      const x = Math.max(20, e.clientX - rect.left - 50);
-      const y = Math.max(20, e.clientY - rect.top - 40);
+      const x = Math.max(20, e.clientX - rect.left + e.currentTarget.scrollLeft - 50);
+      const y = Math.max(50, e.clientY - rect.top + e.currentTarget.scrollTop - 40);
       handleAddDeviceToCanvas(device, { x, y });
     } catch (err) {
       console.error('Drag drop error', err);
@@ -279,15 +446,19 @@ export default function DesignPage() {
     { id: 'c6', name: '压力监测单元', type: '传感器', protocol: '模拟量', date: '2024-04-10', image: '/device/RS485_Pressure_Thumbnail.png' },
   ];
 
+  const canvasDevices: CanvasDevice[] = [...(importedCase ? [] : defaultCanvasDevices.filter(device => !deletedDeviceIds.includes(device.id))), ...addedNodes.map((node, index) => ({ id: node.uniqueId || `${node.id}-${index}`, name: node.displayName || node.name, imageId: node.id, image: node.image, sourceDeviceId: node.sourceDeviceId }))];
+
   return (
-    <div className="h-screen bg-[#f5f5f5] flex flex-col font-sans overflow-hidden">
+    <DeviceSelectionContext.Provider value={{ selectedIds: selectedDeviceIds, deletedIds: deletedDeviceIds, select: (id, additive = false) => setSelectedDeviceIds(previous => additive ? previous.includes(id) ? previous.filter(selected => selected !== id) : [...previous, id] : [id]) }}>
+    <ConnectionProvider key={importedCase ? projectName : 'default'} imported={!!importedCase} connections={initialProjectConnections}>
+    <div className={`design-shell h-screen bg-[#f5f5f5] flex flex-col font-sans overflow-hidden transition-colors duration-300 ${isTwinMode ? 'twin-mode' : ''}`}>
       
       {/* Top Header */}
       {isHeaderVisible && (
-        <header className="h-14 bg-white border-b border-gray-200 flex justify-between items-center px-6 shrink-0 z-20 relative shadow-2xs">
+        <header className="design-header h-[58px] bg-white border-b border-[#dbe6ef] flex justify-between items-center px-7 shrink-0 z-20 relative transition-colors duration-300">
           <div className="flex items-center gap-3">
             <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
-              <img src="/logo.png" alt="虚拟仿真 by UUSIMA" className="h-10 object-contain" />
+              <img src="/logo.png" alt="虚拟仿真 by UUSIMA" className="h-11 object-contain" />
             </Link>
           </div>
 
@@ -301,27 +472,26 @@ export default function DesignPage() {
           </button>
 
           {/* Primary Navigation */}
-          <nav className="flex items-center gap-12 absolute left-1/2 -translate-x-1/2 h-full">
-            {['仿真设备中心', '仿真应用中心'].map(nav => (
+          <nav className="flex items-center gap-20 absolute left-[228px] h-full">
+            {['设备中心', '应用中心'].map(nav => (
               <button
                 key={nav}
                 onClick={() => handleNavClick(nav)}
-                className="text-[15px] font-medium transition-colors h-full flex items-center border-b-2 relative top-[2px] text-gray-600 border-transparent hover:text-[#00a0e9] cursor-pointer"
+                className="text-[16px] font-medium transition-colors h-full flex items-center text-[#273746] hover:text-[#00a8e8] cursor-pointer"
               >
                 {nav}
               </button>
             ))}
             <Link
               to="/console"
-              className="text-[15px] font-medium transition-colors h-full flex items-center border-b-2 relative top-[2px] text-gray-600 border-transparent hover:text-[#00a0e9]"
+              className="text-[16px] font-medium transition-colors h-full flex items-center text-[#273746] hover:text-[#00a8e8]"
             >
               控制台
             </Link>
           </nav>
 
-          <div className="flex items-center gap-2 text-gray-600 cursor-pointer hover:text-blue-600 transition-colors">
-             <UserCircle2 size={20} />
-             <span className="text-sm font-medium">杨振邦</span>
+          <div className="flex items-center gap-2 text-[#374957] cursor-pointer hover:text-blue-600 transition-colors">
+             <span className="text-sm">行业云超管</span>
              <ChevronDown size={14} />
           </div>
         </header>
@@ -329,33 +499,33 @@ export default function DesignPage() {
 
       <div className="flex flex-1 overflow-hidden">
         {/* Left Sidebar */}
-        <aside className="w-[310px] bg-white border-r flex flex-col shrink-0 z-10 shadow-[2px_0_6px_rgba(0,0,0,0.03)]">
+        <aside hidden={sidebarCollapsed} className={`design-sidebar w-[218px] bg-[#f4faff] border-r border-[#cdddea] ${sidebarCollapsed ? 'hidden' : 'flex'} flex-col shrink-0 z-10 transition-colors duration-300`}>
           {/* Header */}
-          <div className="p-3 border-b flex items-center justify-between text-sm font-bold text-gray-700 bg-gray-50/70">
+          <div className="design-sidebar-header h-[48px] px-2 border-b border-[#d7e5ef] flex items-center justify-between text-sm font-semibold text-[#2b4354] bg-white">
             <div className="flex items-center gap-1.5">
-              <Layers size={16} className="text-blue-500"/>
+              <Layers size={18} className="text-[#00a8e8]"/>
               <span>仿真设备库</span>
               <button
                 type="button"
                 onClick={() => setIsDeviceCenterModalOpen(true)}
-                className="w-5 h-5 rounded hover:bg-blue-100/80 text-gray-400 hover:text-blue-600 flex items-center justify-center transition-all cursor-pointer border border-transparent hover:border-blue-200 ml-0.5"
+                className="w-7 h-7 rounded-lg bg-[#f4f8fb] text-[#6f899b] hover:text-blue-600 flex items-center justify-center transition-all cursor-pointer border border-[#d7e4ed] ml-1"
                 title="打开仿真设备中心快速检索并添加设备"
               >
-                <Filter size={13} />
+                <SlidersHorizontal size={14} />
               </button>
             </div>
-            <span className="text-[11px] font-normal text-gray-500 bg-gray-200/70 px-2 py-0.5 rounded-full">
-              共 {allDevices.length} 种
+            <span className="text-[11px] font-normal text-[#7790a1] bg-[#eff5f9] px-2 py-1 rounded-full">
+              {allDevices.length + 256} 种
             </span>
           </div>
 
           {/* Search & Tabs */}
-          <div className="bg-white border-b flex flex-col p-2.5 gap-2 shrink-0">
+          <div className="design-sidebar-controls bg-[#f7fbfe] border-b border-[#d7e5ef] flex flex-col p-2 gap-3 shrink-0">
             <div className="relative">
               <Search size={14} className="absolute left-2.5 top-2.5 text-gray-400" />
               <input 
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg pl-8 pr-3 py-1.5 text-xs outline-none focus:border-blue-400 focus:bg-white transition-colors" 
-                placeholder="搜索传感器、网关、继电器、协议..." 
+                className="w-full h-10 bg-white border border-[#cbddea] rounded-lg pl-8 pr-3 text-xs outline-none focus:border-[#31aee7] transition-colors"
+                placeholder="搜索传感器、网关、继电器"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -371,13 +541,13 @@ export default function DesignPage() {
 
             <div className="flex gap-2">
               <button 
-                className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${activeDeviceTab === 'system' ? 'bg-blue-50 text-blue-600 border border-blue-200 shadow-xs' : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'}`}
+                className={`flex-1 h-8 text-[11px] font-medium rounded-lg transition-all ${activeDeviceTab === 'system' ? 'bg-[#eaf8ff] text-[#009fe3] border border-[#8cd3f2]' : 'bg-white text-[#6b8292] border border-[#cbddea]'}`}
                 onClick={() => setActiveDeviceTab('system')}
               >
-                系统设备 ({allDevices.length})
+                系统设备 {allDevices.length + 248}
               </button>
               <button 
-                className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${activeDeviceTab === 'custom' ? 'bg-blue-50 text-blue-600 border border-blue-200 shadow-xs' : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'}`}
+                className={`flex-1 h-8 text-[11px] font-medium rounded-lg transition-all ${activeDeviceTab === 'custom' ? 'bg-[#eaf8ff] text-[#009fe3] border border-[#6bc8f0]' : 'bg-white text-[#6b8292] border border-[#cbddea]'}`}
                 onClick={() => setActiveDeviceTab('custom')}
               >
                 自定义设备 ({mockCustomDevices.length})
@@ -445,6 +615,36 @@ export default function DesignPage() {
                       未找到与 "{searchQuery}" 相关的设备
                     </div>
                   )}
+                </div>
+              ) : true ? (
+                <div className="design-device-gallery flex-1 overflow-y-auto custom-scrollbar bg-[#f4faff]">
+                  <div className="h-11 px-3 flex items-center justify-between text-[11px] text-[#7890a0]">
+                    <div className="flex items-center gap-2">
+                      <button onClick={expandAll} className="hover:text-[#00a8e8]">展开全部</button>
+                      <span className="text-[#c5d3dc]">|</span>
+                      <button onClick={collapseAll} className="hover:text-[#00a8e8]">折叠全部</button>
+                    </div>
+                    <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#e8f1f7] text-[#688397]" title="收起分类">
+                      <List size={14} />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 px-2 pb-4">
+                    {allDevices.slice(0, 14).map((device: any) => (
+                      <div
+                        key={device.id}
+                        draggable
+                        onDragStart={(event) => handleDragStartFromSidebar(event, device)}
+                        onDoubleClick={() => handleAddDeviceToCanvas(device)}
+                        className="design-device-card group h-[102px] rounded-lg border border-[#cbdfea] bg-[#f8fcff] hover:bg-white hover:border-[#60bde8] hover:shadow-sm cursor-grab active:cursor-grabbing flex flex-col items-center justify-center px-1 transition-all"
+                        title={`拖到画布，或双击添加 ${device.name}`}
+                      >
+                        <div className="w-14 h-14 flex items-center justify-center pointer-events-none">
+                          <DeviceImage deviceId={device.id} customImage={device.image} alt={device.name} className="w-full h-full object-contain" />
+                        </div>
+                        <div className="w-full truncate text-center text-[11px] text-[#526c7e] mt-1 pointer-events-none">{device.name}</div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ) : (
                 /* Dynamic 3-Level Hierarchical Tree Navigation */
@@ -652,7 +852,7 @@ export default function DesignPage() {
             </div>
           ) : (
             /* Custom Devices Tab */
-            <div className="flex-1 flex flex-col overflow-hidden bg-gray-50/50">
+            <div className="design-device-gallery flex-1 flex flex-col overflow-hidden bg-gray-50/50">
               <div className="p-3 border-b border-gray-200 bg-white flex items-center justify-between">
                 <span className="text-xs font-medium text-gray-600">已导入自定义仿真设备</span>
                 <button
@@ -668,7 +868,7 @@ export default function DesignPage() {
                     key={dev.id} 
                     draggable
                     onDragStart={(e) => handleDragStartFromSidebar(e, dev)}
-                    className="bg-white p-3 rounded-lg border border-gray-200 shadow-xs hover:shadow hover:border-blue-300 cursor-grab active:cursor-grabbing transition-all flex items-start gap-3 group select-none"
+                    className="design-device-card bg-white p-3 rounded-lg border border-gray-200 shadow-xs hover:shadow hover:border-blue-300 cursor-grab active:cursor-grabbing transition-all flex items-start gap-3 group select-none"
                     title={`可拖拽或点击右侧 + 添加: ${dev.name}`}
                   >
                     <div className="w-11 h-11 rounded-md bg-gray-50 border border-gray-100 flex items-center justify-center shrink-0 overflow-hidden group-hover:scale-105 transition-transform p-1 pointer-events-none">
@@ -702,71 +902,116 @@ export default function DesignPage() {
               </div>
             </div>
           )}
+          <div className="h-11 shrink-0 border-t border-[#d7e5ef] bg-white flex items-center px-4">
+            <button className="text-[#5f788a] hover:text-[#00a8e8]" title="设计器设置"><Settings size={18} /></button>
+          </div>
         </aside>
 
         {/* Main Editor Area */}
         <main className="flex-1 flex flex-col min-w-0">
           
           {/* Toolbar */}
-          <div className="h-10 bg-white border-b flex justify-between items-center px-4 shadow-xs z-10 shrink-0">
+          <div className="design-toolbar h-12 bg-white border-b border-[#d6e3ec] flex justify-between items-center px-2 relative z-50 shrink-0 transition-colors duration-300">
             <div className="flex items-center gap-1">
-              <ToolBtn icon={<MousePointer2 size={16} />} active tooltip="选择" />
-              <div className="w-px h-4 bg-gray-200 mx-1"></div>
-              <ToolBtn icon={<ArrowRightLeft size={16} />} tooltip="连线" />
-              <ToolBtn icon={<Grid3X3 size={16} />} tooltip="网格" />
-              <ToolBtn icon={<Type size={16} />} tooltip="文本" />
-              <ToolBtn icon={<Image size={16} />} tooltip="图片" />
-              <div className="w-px h-4 bg-gray-200 mx-1"></div>
-              <ToolBtn icon={<AlignLeft size={16} />} tooltip="对齐" />
-              <div className="w-px h-4 bg-gray-200 mx-1"></div>
-              <ToolBtn icon={<Undo size={16} />} disabled tooltip="撤销" />
-              <ToolBtn icon={<Redo size={16} />} disabled tooltip="重做" />
+              <button onClick={() => setSidebarCollapsed(previous => !previous)} aria-label={sidebarCollapsed ? '展开设备库' : '收起设备库'} aria-expanded={!sidebarCollapsed} className="p-1.5 rounded text-slate-500 hover:bg-slate-100" title={sidebarCollapsed ? '展开设备库' : '收起设备库'}>{sidebarCollapsed ? <PanelLeftOpen size={17} /> : <PanelLeftClose size={17} />}</button>
+              <ToolBtn icon={<FileText size={17} />} tooltip="新建" />
+              <ToolBtn icon={<Save size={17} />} tooltip="保存" />
+              <div className="w-px h-5 bg-[#d8e4ec] mx-1"></div>
+              <ConnectionTools />
+              <div className="w-px h-5 bg-[#d8e4ec] mx-1"></div>
+              <ToolBtn icon={<AlignLeft size={17} />} tooltip="左对齐" />
+              <ToolBtn icon={<Grid3X3 size={17} />} tooltip="分布" />
+              <ToolBtn icon={<Network size={17} />} tooltip="自动布局" />
+              <ToolBtn icon={<Cable size={17} />} tooltip="线路整理" />
+              <ToolBtn icon={<Braces size={17} />} tooltip="分组" />
+              <div className="w-px h-5 bg-[#d8e4ec] mx-1"></div>
+              <ToolBtn icon={<Bug size={17} />} tooltip="调试" />
             </div>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center text-xs text-blue-700 font-medium bg-blue-50 border border-blue-100 rounded px-3 py-1.5 cursor-pointer hover:bg-blue-100 transition-colors">
-                实验智能体 <Eye size={14} className="ml-2 text-blue-500" />
+            <div className="flex items-center gap-1.5 text-xs">
+              <div className="mr-2 shrink-0 h-9 p-1 rounded-xl border border-[#cbdbe6] bg-white shadow-sm flex items-center design-mode-switch" aria-label="设计模式">
+                <ModeOption
+                  mode="simulation"
+                  active={designMode === 'simulation'}
+                  onClick={() => requestModeChange('simulation')}
+                />
+                <ModeOption
+                  mode="twin"
+                  active={designMode === 'twin'}
+                  onClick={() => requestModeChange('twin')}
+                />
               </div>
-              <div className="flex items-center gap-1">
-                <ToolBtn icon={<Eye size={16} />} tooltip="预览" />
-                <ToolBtn icon={<FileText size={16} />} tooltip="文档" />
-                <ToolBtn icon={<Cloud size={16} />} tooltip="云端" />
-                <ToolBtn icon={<Clock size={16} />} tooltip="历史记录" />
-              </div>
-              <div className="text-xs text-gray-700 font-medium flex items-center gap-1 cursor-pointer hover:bg-gray-100 px-3 py-1.5 rounded transition-colors border border-transparent hover:border-gray-200">
-                默认场景 <ChevronDown size={14} />
-              </div>
+              <ToolbarAction icon={<Eye size={14} />} label="预览" />
+              <ToolbarAction icon={<Save size={14} />} label="保存配置" />
+              <ToolbarAction icon={<Clock size={14} />} label="发布历史" />
+              <button className="design-primary h-8 px-3 rounded-lg bg-[#00a8e8] hover:bg-[#0097d2] text-white flex items-center gap-1.5 shadow-sm">
+                <Upload size={14} /> 发布
+              </button>
+              <button className="h-8 min-w-32 px-3 rounded-lg border border-[#cbdbe6] text-[#667f90] flex items-center justify-between bg-white">
+                默认网格 <ChevronDown size={14} />
+              </button>
             </div>
           </div>
 
           {/* Canvas Sub-header */}
-          <div className="h-8 bg-[#f8f9fa] border-b flex items-center px-4 text-xs shrink-0">
-            <div className="flex items-center gap-1 text-blue-600 font-medium cursor-pointer border-r border-gray-200 pr-4 hover:opacity-80">
-               连线验证 (已开启) <ChevronDown size={14} />
-            </div>
-            <div className="flex items-center gap-2 text-gray-500 cursor-pointer pl-4 hover:text-gray-700 transition-colors">
-               <div className="w-2 h-2 rounded-full bg-gray-300"></div> 模拟实验 (已关闭)
-            </div>
-            <div className="ml-4 text-gray-400 text-[11px]">
-              提示：可从左侧设备库拖拽或点击设备添加至仿真画布
-            </div>
-            <div className="ml-auto flex items-center gap-2 text-gray-500 cursor-pointer hover:text-gray-700">
-               虚拟仿真助手 <ChevronDown size={14} />
-            </div>
+          <div className="design-modebar h-11 bg-[#f7fbfe] border-b border-[#d6e3ec] flex items-center px-3 text-xs shrink-0 relative z-40 overflow-visible transition-colors duration-300">
+            <button
+              type="button"
+              disabled={!canStartExperiment}
+              onClick={handleExperimentToggle}
+              title={!canStartExperiment ? '请先连接硬件智能体终端' : experimentRunning ? '停止当前实验' : '启动实验'}
+              className={`h-8 w-36 rounded-lg text-white font-medium flex items-center justify-center gap-2 shadow-sm transition-colors disabled:cursor-not-allowed disabled:bg-slate-600 disabled:text-slate-300 ${isTwinMode ? 'bg-[#ee4d2d] hover:bg-[#d93f22]' : 'bg-[#00a8e8] hover:bg-[#0098d3]'}`}
+            >
+              {experimentRunning ? <X size={13} /> : <Play size={13} fill="currentColor" />}
+              {experimentRunning ? '停止实验' : '启动实验'}
+            </button>
+            {!isTwinMode && <div className="ml-2 h-8 px-3 rounded-lg flex items-center gap-2 font-medium border border-[#95d5f2] bg-[#eaf8ff] text-[#129dd7]">
+              <span className={`w-4 h-4 rounded text-white flex items-center justify-center text-[10px] ${isTwinMode ? 'bg-[#ee4d2d]' : 'bg-[#00a8e8]'}`}>✓</span>
+              连线验证 <span className="text-[9px] opacity-70">已开启</span>
+            </div>}
+
+            {isTwinMode ? (
+              <div className={`ml-auto h-8 pl-3 pr-1.5 rounded-lg border flex items-center gap-2 ${agentConnected ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700' : 'border-rose-500/40 bg-rose-500/10 text-rose-600'}`}>
+                {agentConnected ? <Wifi size={14} /> : <WifiOff size={14} />}
+                <span className="font-medium">硬件智能体终端</span>
+                <span className={`w-1.5 h-1.5 rounded-full ${agentConnected ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'}`}></span>
+                <span className="text-[10px]">{agentConnected ? '已连接' : '未连接'}</span>
+                {agentConnected && <span className="font-mono text-[10px] text-slate-400">{agentConfig.ip}:{agentConfig.port}</span>}
+                <button
+                  type="button"
+                  onClick={() => setIsAgentConfigOpen(true)}
+                  aria-label="配置硬件智能体终端"
+                  className="h-6 px-2 rounded-md border border-red-200 bg-white text-[#bd4b30] hover:bg-red-50 flex items-center gap-1"
+                >
+                  <Settings size={11} /> 配置
+                </button>
+              </div>
+            ) : (
+              <div className="ml-auto flex items-center gap-2 h-8 px-3 rounded-lg border border-[#cbdbe6] bg-white text-[#617c8e]">
+                 <span className="w-4 h-4 rounded border border-[#9bb1c0]"></span> 虚拟仿真助手
+                 <span className="w-2 h-2 rounded-full bg-[#d6dee4]"></span>
+              </div>
+            )}
           </div>
 
           {/* Canvas Area */}
-          <div 
+          <div ref={workspaceRef} className="flex-1 min-h-0 min-w-0 flex">
+          <div className="design-canvas-viewport relative flex-1 min-w-0 min-h-0 flex overflow-hidden">
+          <ConnectionCanvas
+            nodeIds={canvasDevices.map(device => device.id)}
+            selectedNodeIds={selectedDeviceIds}
+            onSelectionChange={setSelectedDeviceIds}
+            onDeleteNodes={deleteCanvasDevices}
             onDragOver={(e) => e.preventDefault()}
             onDrop={handleDropOnCanvas}
-            className="flex-1 relative overflow-auto bg-white bg-[linear-gradient(to_right,#e5e7eb_1px,transparent_1px),linear-gradient(to_bottom,#e5e7eb_1px,transparent_1px)] bg-[size:20px_20px]"
+            className="design-canvas flex-1 min-w-0 relative overflow-auto bg-[#fbfefe] bg-[linear-gradient(to_right,#e8f0f3_1px,transparent_1px),linear-gradient(to_bottom,#e8f0f3_1px,transparent_1px)] bg-[size:8px_8px] transition-colors duration-300"
           >
             {/* Top Prompt Banner for Imported Case */}
             {importedCase && (
-              <div className="absolute top-3 left-4 right-4 z-10 bg-blue-50/90 backdrop-blur-xs border border-blue-200 text-blue-800 text-xs px-4 py-2 rounded-xl flex items-center justify-between shadow-2xs">
+              <div className="design-import-banner absolute top-14 left-4 right-4 z-10 bg-blue-50/90 backdrop-blur-xs border border-blue-200 text-blue-800 text-xs px-4 py-2 rounded-xl flex items-center justify-between shadow-2xs pointer-events-none">
                 <div className="flex items-center gap-2">
                   <Sparkles size={15} className="text-blue-500 shrink-0" />
                   <span>
-                    已为您并排导入 <strong>{projectName}</strong> 的 <strong>{addedNodes.length}</strong> 台仿真设备。当前<strong>无任何预设连线</strong>，请拖动设备或从端口引脚接线开启仿真。
+                    已导入 <strong>{projectName}</strong> 的 <strong>{addedNodes.length}</strong> 台仿真设备，拖动端口或依次点击两个同色端口即可接线。
                   </span>
                 </div>
                 <span className="text-[11px] text-blue-600 font-medium">设计器模式：自定义连线</span>
@@ -778,123 +1023,161 @@ export default function DesignPage() {
               <DraggableNode 
                 key={node.uniqueId || `${node.id}-${i}`}
                 id={node.uniqueId || `${node.id}-${i}`}
-                onDrag={handleNodeDrag(node.uniqueId || `${node.id}-${i}`)}
                 title={node.displayName || node.name}
+                showLabel={node.sourceDeviceId !== undefined}
+                appearing={node.sourceDeviceId !== undefined}
                 subtitle={node.categoryPath || node.inferredType || '仿真节点'}
                 style={{ top: node.y, left: node.x }}
                 onDelete={() => {
-                  setAddedNodes(prev => prev.filter(n => (n.uniqueId || `${n.id}-${i}`) !== (node.uniqueId || `${node.id}-${i}`)));
+                  deleteCanvasDevices([node.uniqueId || `${node.id}-${i}`]);
                 }}
                 icon={
-                  <div className="w-14 h-14 bg-white rounded-md flex items-center justify-center relative overflow-hidden p-1 border border-gray-100">
+                    <div className="w-24 h-24 flex items-center justify-center relative">
                     <DeviceImage
                       deviceId={node.id}
                       customImage={node.image}
                       alt={node.displayName || node.name}
-                      className="w-full h-full object-contain"
+                      className="w-24 h-24 object-contain"
                     />
                   </div>
                 }
-                ports={['top-blue', 'bottom-red', 'bottom-black', 'bottom-green']}
+                ports={node.ports ?? ['bottom-blue', 'bottom-red', 'bottom-black', 'bottom-green']}
                 attributes={node.modbusAttrs || node.attributes}
               />
             ))}
 
             {/* Default Topology Components & Wires (Only rendered if NOT an imported case) */}
-            {!importedCase && (
-              <>
-                <DraggableNode id="ha" onDrag={handleNodeDrag("ha")} title="温湿度传感器 HA_61" 
-                  subtitle="RS485 / Modbus" 
-                  icon={<DeviceImage deviceId="RS485_Humiture" customImage="/device/RS485_Humiture_Thumbnail.png" alt="温湿度" className="w-14 h-14 object-contain" />}
-                  style={{ top: 80, left: 120 }}
-                  ports={['bottom-red', 'bottom-black', 'bottom-blue', 'bottom-green']}
-                />
-                
-                <DraggableNode id="pwr" onDrag={handleNodeDrag("pwr")} title="5V 工业导轨电源" 
-                  subtitle="DC12V/10A"
-                  headerClass="bg-gray-800 text-white"
-                  style={{ top: 80, left: 320 }}
-                  icon={<DeviceImage deviceId="Power_DINRailPowerAdapter" customImage="/device/Power_DINRailPowerAdapter_Thumbnail.png" alt="电源" className="w-14 h-14 object-contain" />}
-                  ports={['bottom-red', 'bottom-black']}
-                />
+            {!importedCase && initialProjectDevices.map((device, index) => (
+              <DraggableNode key={device.id} id={device.id} title={device.name} showLabel
+                subtitle={`清单数量：${device.quantity} ${device.unit}${device.note ? ' · ' + device.note : ''}`}
+                style={index < wiredDeviceIds.length
+                  ? { top: 105, left: 70 + index * 285 }
+                  : { top: 405 + Math.floor((index - wiredDeviceIds.length) / 5) * 220, left: 70 + ((index - wiredDeviceIds.length) % 5) * 235 }}
+                icon={device.image
+                  ? <DeviceImage customImage={device.image} alt={device.name} className="w-28 h-24 object-contain" />
+                  : <div className="w-28 h-24 rounded-lg border border-dashed border-slate-300 bg-white/80 text-slate-400 flex flex-col items-center justify-center gap-2"><Box size={26} /><span className="text-[10px]">清单未提供图片</span></div>}
+                ports={device.name.includes('485型') ? ['bottom-red', 'bottom-black', 'bottom-blue', 'bottom-green'] : []}
+                attributes={[]}
+                onDelete={() => deleteCanvasDevices([device.id])}
+              />
+            ))}
 
-                {/* Custom Component: Keypad / Door Access */}
-                <DraggableContainer id="keypad" onDrag={handleNodeDrag("keypad")} className="absolute top-[60px] left-[550px] w-32 border border-gray-300 shadow-xl bg-white rounded flex flex-col items-center p-2 z-10 cursor-move hover:shadow-2xl transition-shadow group">
-                  <div className="w-full bg-blue-600 text-white text-[11px] text-center py-1 rounded-t -mt-2 -mx-2 mb-2 w-[calc(100%+16px)] font-medium">门禁读卡键盘</div>
-                  <div className="w-24 h-24 bg-gray-50 rounded-md p-1 mb-2 flex items-center justify-center border border-gray-200">
-                    <DeviceImage deviceId="Other_XC40_DoorControl" customImage="/device/Other_XC40_DoorControl_Thumbnail.png" alt="门禁" className="w-full h-full object-contain" />
-                  </div>
-                  <div className="w-full flex justify-around mt-1 pt-1 border-t border-gray-100 bg-gray-50 rounded-b p-1">
-                     <Port color="red" /><Port color="black" /><Port color="blue" /><Port color="green" />
-                  </div>
-                </DraggableContainer>
+          </ConnectionCanvas>
+            <div className="design-floating absolute right-3 top-1/2 -translate-y-1/2 z-30 flex flex-col rounded-xl border border-[#d3e4ee] bg-white/95 shadow-sm overflow-hidden">
+              {[Grid3X3, HelpCircle, MessageCircle, RotateCcw].map((Icon, index) => (
+                <button key={index} className="w-10 h-10 flex items-center justify-center text-[#617d90] hover:text-[#00a8e8] hover:bg-[#eff9fe]" title={['视图', '帮助', '反馈', '历史'][index]}>
+                  <Icon size={17} />
+                </button>
+              ))}
+            </div>
+            <div className="design-floating absolute right-5 bottom-4 z-30 h-9 flex items-center rounded-lg border border-[#d3e1ea] bg-white shadow-sm overflow-hidden text-[#627b8d] text-xs">
+              <button className="w-12 h-full flex items-center justify-center hover:bg-[#f2f8fb]"><ZoomOut size={15} /></button>
+              <span className="w-14 text-center border-x border-[#e0e8ee]">100%</span>
+              <button className="w-12 h-full flex items-center justify-center hover:bg-[#f2f8fb]"><ZoomIn size={15} /></button>
+              <button className="w-12 h-full flex items-center justify-center border-l border-[#e0e8ee] hover:bg-[#f2f8fb]"><RotateCcw size={15} /></button>
+            </div>
 
-                {/* Middle Router Component */}
-                <DraggableNode id="adam" onDrag={handleNodeDrag("adam")} title="串口服务器 (NLESerial)" 
-                  subtitle="RS485 转以太网" 
-                  style={{ top: 320, left: 350 }}
-                  icon={
-                    <div className="w-28 h-20 bg-gray-50 border border-gray-200 rounded p-1 flex items-center justify-center">
-                      <DeviceImage deviceId="NLESerialServer" customImage="/device/NLESerialServer_Thumbnail.png" alt="串口服务器" className="w-full h-full object-contain" />
-                    </div>
-                  }
-                  ports={['top-blue', 'top-green', 'bottom-red', 'bottom-black']}
-                />
-
-                {/* Dynamic Wiring Layer */}
-                <WireRenderer nodeOffsets={nodeOffsets} />
-
-                {/* Bottom Row Extra Components */}
-                <DraggableNode id="btm1" onDrag={handleNodeDrag("btm1")} title="温湿度变送器" 
-                  subtitle="RS485 / 地址 0x01" 
-                  style={{ top: 460, left: 120 }}
-                  icon={
-                    <div className="w-20 h-16 rounded border border-teal-200 bg-white p-1 flex items-center justify-center shadow-xs">
-                      <DeviceImage deviceId="RS485_Humiture" customImage="/device/RS485_Humiture_Thumbnail.png" alt="温湿度传感器" className="w-full h-full object-contain" />
-                    </div>
-                  }
-                  ports={['bottom-red', 'bottom-black', 'bottom-blue', 'bottom-green']}
-                />
-
-                <DraggableNode id="btm2" onDrag={handleNodeDrag("btm2")} title="智能水泵执行器" 
-                  subtitle="继电器控制单元" 
-                  style={{ top: 460, left: 320 }}
-                  icon={
-                    <div className="w-20 h-16 rounded border border-orange-200 bg-white p-1 flex items-center justify-center shadow-xs">
-                      <DeviceImage deviceId="RS485_WaterPump" customImage="/device/RS485_WaterPump_Thumbnail.png" alt="水泵阀门" className="w-full h-full object-contain" />
-                    </div>
-                  }
-                  ports={['top-blue', 'bottom-red', 'bottom-black']}
-                />
-
-                <DraggableNode id="btm3" onDrag={handleNodeDrag("btm3")} title="边缘计算网关 USR-G771" 
-                  subtitle="MQTT / 4G LTE" 
-                  style={{ top: 460, left: 520 }}
-                  icon={
-                    <div className="w-24 h-16 rounded border border-indigo-200 bg-white p-1 flex items-center justify-center shadow-xs">
-                      <DeviceImage deviceId="UsrG771Gateway" customImage="/device/UsrG771Gateway_Thumbnail.png" alt="边缘计算网关" className="w-full h-full object-contain" />
-                    </div>
-                  }
-                  ports={['bottom-red', 'bottom-black', 'bottom-blue', 'bottom-green', 'bottom-yellow']}
-                />
-              </>
-            )}
-
+          </div>
+          {isTwinMode && (
+            <>
+            <div role="separator" aria-label="调整设计区和设备列表宽度" aria-orientation="vertical" aria-valuemin={25} aria-valuemax={75} aria-valuenow={Math.round(panelWidth)} tabIndex={0}
+              className="twin-resizer w-2 shrink-0 cursor-col-resize flex items-center justify-center touch-none outline-none"
+              onKeyDown={event => { if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); setPanelWidth(previous => Math.max(25, Math.min(75, previous + (event.key === 'ArrowLeft' ? 2 : -2)))); } }}
+              onPointerDown={event => { event.currentTarget.setPointerCapture(event.pointerId); event.preventDefault(); }}
+              onPointerMove={event => { if (!event.currentTarget.hasPointerCapture(event.pointerId)) return; const bounds = workspaceRef.current?.getBoundingClientRect(); if (bounds) setPanelWidth(Math.max(25, Math.min(75, (bounds.right - event.clientX) / bounds.width * 100))); }}
+              onPointerUp={event => event.currentTarget.releasePointerCapture(event.pointerId)}
+            ><GripVertical size={12} /></div>
+            <TwinDevicePanel
+              width={panelWidth}
+              canvasDevices={canvasDevices}
+              onSelect={selectCanvasDevice}
+              onGenerate={handleGenerateSimulation}
+              connected={agentConnected}
+              agentConfig={agentConfig}
+              onConfigure={() => setIsAgentConfigOpen(true)}
+            />
+            </>
+          )}
           </div>
           
           {/* Footer Tabs */}
-          <div className="h-10 bg-[#f8f9fa] border-t flex items-center px-4 text-xs shrink-0">
-            <div className="flex items-center gap-1.5 text-green-600 mr-6 font-medium bg-green-50 px-2 py-1 rounded border border-green-100">
-              <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div> 已发布
+          <div className="design-footer h-12 bg-white border-t border-[#d2e0e9] flex items-center px-3 text-xs shrink-0 transition-colors duration-300">
+            <div className="h-8 flex items-center gap-2 text-[#7b8d9a] mr-2 bg-[#eef3f6] px-3 rounded-lg">
+              <div className="w-2 h-2 rounded-full bg-[#8fa2af]"></div> 未发布
             </div>
-            <button className="w-6 h-6 flex items-center justify-center border border-gray-200 rounded bg-white text-gray-500 hover:bg-gray-50 hover:text-blue-500 mr-2 transition-colors shadow-sm cursor-pointer">+</button>
-            <div className="flex bg-white border border-gray-200 border-b-0 mt-[1px] shadow-[0_-2px_5px_rgba(0,0,0,0.02)] rounded-t overflow-hidden">
-              <div className="px-5 py-2.5 border-r border-gray-200 text-gray-600 flex items-center gap-3 cursor-pointer hover:bg-gray-50 transition-colors">实验1 <span className="text-gray-400 hover:text-red-500 text-base leading-none">×</span></div>
-              <div className="px-5 py-2.5 border-r border-gray-200 text-blue-600 border-t-2 border-t-blue-500 bg-white font-medium flex items-center gap-3 cursor-pointer">实验1 <span className="text-gray-400 hover:text-red-500 text-base leading-none">×</span></div>
+            <button className="w-8 h-8 flex items-center justify-center border border-[#a7d8ef] rounded-lg bg-white text-[#00a8e8] hover:bg-[#effaff] mr-2 transition-colors cursor-pointer"><Plus size={16} /></button>
+            <div className="flex h-full items-end">
+              <div className="h-9 px-5 rounded-t-lg text-[#159fd8] bg-[#eaf8ff] font-medium flex items-center gap-3 cursor-pointer" title={projectName}>{projectName}</div>
             </div>
           </div>
         </main>
       </div>
+
+      {pendingMode && (
+        <div className="fixed inset-0 z-[100] bg-slate-950/65 backdrop-blur-[2px] flex items-center justify-center p-6" role="presentation">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="mode-change-title"
+            className={`w-full max-w-[600px] overflow-hidden rounded-2xl border shadow-2xl ${pendingMode === 'twin' ? 'bg-white border-red-100 text-slate-800' : 'bg-white border-slate-200 text-slate-800'}`}
+          >
+            <div className={`px-6 py-5 border-b ${pendingMode === 'twin' ? 'border-red-100 bg-[#fff8f6]' : 'border-slate-100 bg-slate-50/80'}`}>
+              <div className="flex items-start gap-3">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${pendingMode === 'twin' ? 'bg-red-50 text-[#ee4d2d]' : 'bg-amber-50 text-amber-500'}`}>
+                  <AlertTriangle size={21} />
+                </div>
+                <div>
+                  <h2 id="mode-change-title" className="text-base font-semibold">确认切换至{modeDetails[pendingMode].label}</h2>
+                  <p className={`text-xs mt-1 leading-5 ${pendingMode === 'twin' ? 'text-slate-400' : 'text-slate-500'}`}>
+                    两种模式的数据来源和操作能力不同，请确认当前工作目标后再切换。
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6">
+              <div className="grid grid-cols-[1fr_auto_1fr] items-stretch gap-3">
+                <ModeSummary mode={designMode} caption="当前模式" dark={false} />
+                <div className="flex items-center justify-center text-slate-400"><ArrowRight size={18} /></div>
+                <ModeSummary mode={pendingMode} caption="切换后" active dark={false} />
+              </div>
+            </div>
+
+            <div className={`px-6 py-4 border-t flex items-center justify-between ${pendingMode === 'twin' ? 'border-red-100 bg-[#fff8f6]' : 'border-slate-100 bg-slate-50'}`}>
+              <div className={`text-xs ${pendingMode === 'twin' ? 'text-slate-500' : 'text-slate-400'}`}>
+                {modeCountdown > 0 ? `请阅读模式差异，${modeCountdown} 秒后可确认` : '已完成阅读，可以确认切换'}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPendingMode(null)}
+                  className={`h-9 px-4 rounded-lg border text-sm transition-colors ${pendingMode === 'twin' ? 'border-slate-200 text-slate-600 hover:bg-red-50' : 'border-slate-200 text-slate-600 hover:bg-white'}`}
+                >
+                  取消
+                </button>
+                <button
+                  type="button"
+                  disabled={modeCountdown > 0}
+                  onClick={confirmModeChange}
+                  className={`h-9 min-w-[128px] px-4 rounded-lg text-sm font-medium text-white transition-all disabled:cursor-not-allowed disabled:opacity-45 ${pendingMode === 'twin' ? 'bg-[#ee4d2d] hover:bg-[#d93f22]' : 'bg-[#00a8e8] hover:bg-[#0097d2]'}`}
+                >
+                  {modeCountdown > 0 ? `确认切换 (${modeCountdown}s)` : '确认切换'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isAgentConfigOpen && (
+        <HardwareAgentConfigModal
+          config={agentConfig}
+          connected={agentConnected}
+          onClose={() => setIsAgentConfigOpen(false)}
+          onConnect={handleAgentConnect}
+          onDisconnect={handleAgentDisconnect}
+        />
+      )}
 
       <AddCustomDeviceModal isOpen={isAddDeviceModalOpen} onClose={() => setIsAddDeviceModalOpen(false)} />
       
@@ -906,6 +1189,8 @@ export default function DesignPage() {
         canvasDeviceCount={addedNodes.length}
       />
     </div>
+    </ConnectionProvider>
+    </DeviceSelectionContext.Provider>
   );
 }
 
@@ -923,82 +1208,429 @@ function ToolBtn({ icon, active, disabled, tooltip }: { icon: React.ReactNode, a
   );
 }
 
-const Wire = ({ start, end, color, dasharray, offset = 30 }: any) => {
-  const midY = Math.max(start.y, end.y) + offset;
+function ToolbarAction({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
-    <path 
-      d={`M ${start.x} ${start.y} L ${start.x} ${midY} L ${end.x} ${midY} L ${end.x} ${end.y}`}
-      stroke={color} 
-      strokeWidth="2" 
-      fill="none" 
-      strokeDasharray={dasharray}
-      className="drop-shadow-xs transition-all duration-75" 
-    />
-  );
-};
-
-function WireRenderer({ nodeOffsets }: any) {
-  const getPos = (baseX: number, baseY: number, nodeId: string) => {
-    const offset = nodeOffsets[nodeId] || { x: 0, y: 0 };
-    return { x: baseX + offset.x, y: baseY + offset.y };
-  };
-
-  const haRed = getPos(140, 170, 'ha');
-  const haBlack = getPos(160, 170, 'ha');
-  const haBlue = getPos(180, 170, 'ha');
-  const haGreen = getPos(200, 170, 'ha');
-
-  const pwrRed = getPos(345, 170, 'pwr');
-  const pwrBlack = getPos(370, 170, 'pwr');
-
-  const keypadRed = getPos(570, 240, 'keypad');
-  const keypadBlack = getPos(595, 240, 'keypad');
-  const keypadBlue = getPos(620, 240, 'keypad');
-  const keypadGreen = getPos(645, 240, 'keypad');
-
-  const adamBlue = getPos(380, 320, 'adam');
-  const adamGreen = getPos(410, 320, 'adam');
-
-  return (
-    <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
-      <Wire start={haRed} end={pwrRed} color="#ef4444" offset={50} />
-      <Wire start={pwrRed} end={keypadRed} color="#ef4444" offset={10} />
-      
-      <Wire start={haBlack} end={pwrBlack} color="#1f2937" offset={60} />
-      <Wire start={pwrBlack} end={keypadBlack} color="#1f2937" offset={20} />
-
-      <Wire start={haBlue} end={keypadBlue} color="#3b82f6" offset={70} />
-      <Wire start={keypadBlue} end={adamBlue} color="#3b82f6" offset={30} dasharray="4 2" />
-
-      <Wire start={haGreen} end={keypadGreen} color="#22c55e" offset={80} />
-      <Wire start={keypadGreen} end={adamGreen} color="#22c55e" offset={40} dasharray="4 2" />
-    </svg>
+    <button className="h-8 px-2.5 rounded-lg border border-[#cbdbe6] bg-white text-[#5d7587] hover:text-[#00a8e8] hover:border-[#85ccec] flex items-center gap-1.5 transition-colors">
+      {icon}{label}
+    </button>
   );
 }
 
+function ModeOption({ mode, active, onClick }: { mode: DesignMode; active: boolean; onClick: () => void }) {
+  const Icon = mode === 'simulation' ? Boxes : Monitor;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      title={modeDetails[mode].description}
+      className={`mode-option relative h-7 px-3.5 rounded-lg flex items-center gap-1.5 font-medium transition-all ${active
+        ? mode === 'twin' ? 'bg-[#ee4d2d] text-white shadow-sm' : 'bg-[#00a8e8] text-white shadow-sm'
+        : 'text-[#61798a] hover:bg-[#eef5f8]'}`}
+    >
+      <Icon size={13} />
+      {modeDetails[mode].shortLabel}
+      <span className="mode-tooltip" role="tooltip">
+        <strong>{modeDetails[mode].label}</strong>
+        <span>{modeDetails[mode].description}</span>
+      </span>
+    </button>
+  );
+}
+
+function ModeSummary({ mode, caption, active = false, dark = false }: { mode: DesignMode; caption: string; active?: boolean; dark?: boolean }) {
+  const Icon = mode === 'simulation' ? Boxes : Monitor;
+  return (
+    <div className={`rounded-xl border p-4 ${active
+      ? mode === 'twin' ? 'border-red-200 bg-red-50' : 'border-sky-300 bg-sky-50'
+      : dark ? 'border-slate-700 bg-slate-900/60' : 'border-slate-200 bg-white'}`}
+    >
+      <div className={`text-[10px] mb-2 ${dark ? 'text-slate-500' : 'text-slate-400'}`}>{caption}</div>
+      <div className="flex items-center gap-2 font-semibold text-sm">
+        <Icon size={16} className={mode === 'twin' ? 'text-[#ee4d2d]' : 'text-sky-500'} />
+        {modeDetails[mode].shortLabel}
+      </div>
+      <p className={`text-[11px] leading-5 mt-2 ${dark ? 'text-slate-400' : 'text-slate-500'}`}>{modeDetails[mode].description}</p>
+    </div>
+  );
+}
+
+function TwinDevicePanel({ connected, agentConfig, onConfigure, width, canvasDevices, onSelect, onGenerate }: {
+  connected: boolean; agentConfig: HardwareAgentConfig; onConfigure: () => void;
+  width: number; canvasDevices: CanvasDevice[]; onSelect: (id: string) => void;
+  onGenerate: (device: SouthboundDevice) => string;
+}) {
+  const editor = useConnections();
+  const [devices, setDevices] = useState(initialSouthboundDevices);
+  const [bindings, setBindings] = useState<Record<number, string>>({});
+  const [query, setQuery] = useState('');
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [draftAddress, setDraftAddress] = useState('');
+  const [error, setError] = useState('');
+  const [syncTimes, setSyncTimes] = useState<Record<number, string>>({});
+  const [notice, setNotice] = useState('');
+  const [checkedIds, setCheckedIds] = useState<number[]>([]);
+  const [generationQueue, setGenerationQueue] = useState<SouthboundDevice[] | null>(null);
+  const [generatedCount, setGeneratedCount] = useState(0);
+  const [lastGeneratedId, setLastGeneratedId] = useState('');
+  const [syncQueue, setSyncQueue] = useState<SouthboundDevice[] | null>(null);
+  const [deviceView, setDeviceView] = useState<'list' | 'cards' | 'topology'>('list');
+  const [selectedTopologyGroups, setSelectedTopologyGroups] = useState<string[]>(['串口 A']);
+  const isSyncing = syncQueue !== null;
+  const selectAllRef = useRef<HTMLInputElement>(null);
+  const linkedDevice = (device: SouthboundDevice) => bindings[device.id] !== undefined
+    ? canvasDevices.find(candidate => candidate.id === bindings[device.id])
+    : canvasDevices.find(candidate => candidate.sourceDeviceId === device.id) || canvasDevices.find(candidate => candidate.name === device.name) || canvasDevices.find(candidate => candidate.name === device.linkedDevice);
+  const filteredDevices = devices.filter(device => {
+    const keyword = query.trim().toLowerCase();
+    return `${device.name} ${linkedDevice(device)?.name || ''} ${device.address} ${device.serialPort} ${device.protocol}`.toLowerCase().includes(keyword);
+  });
+  const displayedDevices = deviceView === 'topology' ? filteredDevices.filter(device => selectedTopologyGroups.includes(device.serialPort)) : filteredDevices;
+  const allChecked = displayedDevices.length > 0 && displayedDevices.every(device => checkedIds.includes(device.id));
+  useEffect(() => {
+    if (selectAllRef.current) selectAllRef.current.indeterminate = !allChecked && displayedDevices.some(device => checkedIds.includes(device.id));
+  }, [allChecked, displayedDevices, checkedIds, deviceView]);
+  useEffect(() => {
+    if (!syncQueue || !connected) return;
+    if (devices.length >= syncQueue.length) {
+      setNotice(`南向设备同步完成，共 ${devices.length} 台设备`);
+      setSyncQueue(null);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      const device = syncQueue[devices.length];
+      setDevices(previous => [...previous, device]);
+      setSyncTimes(previous => ({ ...previous, [device.id]: new Date().toLocaleTimeString('zh-CN', { hour12: false }) }));
+    }, 650);
+    return () => window.clearTimeout(timer);
+  }, [syncQueue, devices.length, connected]);
+  const synchronizeSouthboundDevices = () => {
+    if (!connected || isSyncing || generationQueue) return;
+    setSyncQueue(devices.map(device => ({ ...device, value: initialSouthboundDevices.find(snapshot => snapshot.id === device.id)?.value || device.value })));
+    setDevices([]);
+    setQuery('');
+    setCheckedIds([]);
+    setEditingId(null);
+    setError('');
+    setSyncTimes({});
+    setNotice('');
+  };
+  useEffect(() => {
+    if (!generationQueue || generatedCount >= generationQueue.length || !connected) return;
+    const timer = window.setTimeout(() => {
+      const device = generationQueue[generatedCount];
+      const id = onGenerate(device);
+      setBindings(previous => ({ ...previous, [device.id]: id }));
+      setLastGeneratedId(id);
+      setGeneratedCount(generatedCount + 1);
+    }, 1100);
+    return () => window.clearTimeout(timer);
+  }, [generationQueue, generatedCount, connected, onGenerate]);
+  useEffect(() => {
+    if (generationQueue && generatedCount > 0 && lastGeneratedId) {
+      const current = generationQueue[generatedCount - 1];
+      const previous = generationQueue.slice(0, generatedCount - 1).reverse().find(device => device.serialPort === current.serialPort && device.protocol === current.protocol);
+      if (previous && current.protocol === 'RS485') editor.connectNodes(`twin_${previous.id}`, lastGeneratedId);
+      onSelect(lastGeneratedId);
+    }
+  }, [generationQueue, generatedCount, lastGeneratedId]);
+  const startGeneration = () => {
+    if (!connected || checkedIds.length === 0 || generationQueue || isSyncing) return;
+    setGeneratedCount(0);
+    setLastGeneratedId('');
+    setGenerationQueue(devices.filter(device => checkedIds.includes(device.id)));
+  };
+  const saveAddress = (deviceId: number) => {
+    const address = Number(draftAddress);
+    if (!Number.isInteger(address) || address < 1 || address > 247) return setError('Modbus 地址须为 1–247 的整数');
+    if (devices.some(device => device.id !== deviceId && device.address === address)) return setError('该地址已被其他设备使用');
+    setDevices(previous => previous.map(device => device.id === deviceId ? { ...device, address } : device));
+    setEditingId(null);
+    setError('');
+  };
+  const synchronize = (device: SouthboundDevice) => {
+    const snapshot = initialSouthboundDevices.find(item => item.id === device.id);
+    if (snapshot) setDevices(previous => previous.map(item => item.id === device.id ? { ...item, value: snapshot.value } : item));
+    const time = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+    setSyncTimes(previous => ({ ...previous, [device.id]: time }));
+    setNotice(`${device.name} 已同步 · ${time}`);
+  };
+  const toggleDevice = (id: number, checked: boolean) => setCheckedIds(previous => checked ? [...new Set([...previous, id])] : previous.filter(item => item !== id));
+  const portGroups = [...new Set(filteredDevices.map(device => device.serialPort))].map(serialPort => ({
+    serialPort,
+    protocols: [...new Set(filteredDevices.filter(device => device.serialPort === serialPort).map(device => device.protocol))].map(protocol => ({
+      protocol, devices: filteredDevices.filter(device => device.serialPort === serialPort && device.protocol === protocol),
+    })),
+  }));
+  const renderDeviceCard = (device: SouthboundDevice) => {
+    const linked = linkedDevice(device);
+    const source = isa850Devices.find(item => item.name === device.name);
+    return <article key={device.id} data-real-device={device.id} className={`rounded-xl border bg-white p-3 min-w-0 ${checkedIds.includes(device.id) ? 'border-[#ee4d2d] ring-1 ring-red-100' : 'border-slate-200'}`}>
+      <div className="flex items-center justify-between gap-2">
+        <label className="flex items-center gap-2 cursor-pointer text-[10px] text-slate-500"><input type="checkbox" aria-label={`勾选${device.name}`} checked={checkedIds.includes(device.id)} onChange={event => toggleDevice(device.id, event.target.checked)} className="accent-[#ee4d2d]" />{String(device.id).padStart(2, '0')}</label>
+        <span className="text-[10px] text-emerald-600">● 在线</span>
+      </div>
+      <button type="button" onClick={() => toggleDevice(device.id, !checkedIds.includes(device.id))} aria-label={`选择卡片${device.name}`} aria-pressed={checkedIds.includes(device.id)} className="w-full h-28 mt-2 rounded-lg bg-slate-50/60 flex items-center justify-center p-3">
+        {source?.image ? <DeviceImage customImage={source.image} alt={device.name} className="w-full h-full object-contain" /> : <Box size={32} className="text-slate-300" />}
+      </button>
+      <h3 className="mt-3 text-xs font-semibold leading-5 min-h-10">{device.name}</h3>
+      <p className="text-[10px] text-slate-400">{device.serialPort} · {device.protocol}</p>
+      <div className="mt-2 flex items-center gap-2 text-[10px] text-slate-500"><span>{device.protocol === 'RS485' || device.protocol === 'Modbus-TCP' ? 'Modbus 地址' : '设备地址'}</span>{editingId === device.id ? <div className="flex items-center gap-1">
+        <input autoFocus aria-label="Modbus地址" type="number" min="1" max="247" value={draftAddress} onChange={event => setDraftAddress(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') saveAddress(device.id); if (event.key === 'Escape') { setEditingId(null); setError(''); } }} className="w-12 h-6 rounded border border-red-200 px-1" />
+        <button title="保存地址" onClick={() => saveAddress(device.id)}><Check size={13} /></button><button title="取消修改" onClick={() => { setEditingId(null); setError(''); }}><X size={13} /></button>
+      </div> : <button title="修改Modbus地址" onClick={() => { setEditingId(device.id); setDraftAddress(String(device.address)); setError(''); }} className="twin-outline px-2 py-0.5 inline-flex items-center gap-1">{device.address}<Pencil size={10} /></button>}</div>
+      {editingId === device.id && error && <p role="alert" className="text-[10px] text-red-600 mt-1">{error}</p>}
+      <div className="mt-2 rounded-lg bg-[#fff8f6] px-2 py-2 text-[11px] leading-5">{device.value}</div>
+      <label className="block mt-3 text-[10px] text-slate-500">关联仿真设备
+        <select aria-label={`${device.name}关联仿真设备`} value={linked?.id || ''} onChange={event => setBindings(previous => ({ ...previous, [device.id]: event.target.value }))} className="mt-1 w-full min-w-0 border border-slate-200 rounded-md bg-white p-1.5 text-[10px]">
+          <option value="">未关联 · 选择设备</option>{canvasDevices.map(candidate => <option key={candidate.id} value={candidate.id}>{candidate.name}</option>)}
+        </select>
+      </label>
+      <div className="mt-3 flex items-center gap-2"><button onClick={() => synchronize(device)} className="twin-outline px-2 h-7 text-[10px] flex items-center gap-1"><RefreshCw size={11} />同步</button><button disabled={!linked} onClick={() => linked && onSelect(linked.id)} className="twin-outline px-2 h-7 text-[10px] flex items-center gap-1 disabled:opacity-35"><MousePointer2 size={11} />选中</button></div>
+      {syncTimes[device.id] && <p className="mt-2 text-[9px] text-slate-400">同步于 {syncTimes[device.id]}</p>}
+    </article>;
+  };
+  return (
+    <section style={{ width: `${width}%` }} className="twin-device-panel shrink-0 min-w-0 bg-white text-slate-700 flex flex-col min-h-0" aria-label="南向真实设备列表">
+      <div className="h-[58px] shrink-0 px-4 border-b border-red-100 bg-[#fff8f6] flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-8 h-8 shrink-0 rounded-lg bg-red-50 text-[#ee4d2d] flex items-center justify-center"><Server size={16} /></div>
+          <div className="min-w-0"><div className="text-sm font-semibold truncate">南向真实设备</div><div className="text-[10px] text-slate-500 truncate">{agentConfig.agent} · 多协议接入</div></div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className={`text-[10px] ${connected ? 'text-emerald-600' : 'text-red-600'}`}>{connected ? `${devices.length} 台在线` : '终端未连接'}</span>
+          <button onClick={startGeneration} disabled={!connected || checkedIds.length === 0 || !!generationQueue || isSyncing} title={checkedIds.length ? '生成所选设备并关联到左侧画布' : '请先勾选列表中的设备'} className="h-7 px-2 rounded-md bg-[#ee4d2d] text-white text-[10px] flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"><Boxes size={12} />生成仿真{checkedIds.length > 0 ? ` (${checkedIds.length})` : ''}</button>
+          <button onClick={synchronizeSouthboundDevices} disabled={!connected || isSyncing || !!generationQueue} aria-label="同步南向设备" className="twin-outline h-7 px-2 flex items-center gap-1 text-[10px] whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"><RefreshCw size={11} className={isSyncing ? 'animate-spin' : ''} />{isSyncing ? '同步中…' : '同步南向设备'}</button>
+        </div>
+      </div>
+      {connected ? <>
+        <div className="px-3 py-3 border-b border-slate-100">
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <div role="group" aria-label="南向设备展示模式" className="inline-flex p-1 rounded-lg bg-slate-100 gap-1">
+              {([{ value: 'list', label: '列表', icon: List }, { value: 'cards', label: '卡片', icon: LayoutGrid }, { value: 'topology', label: '拓扑', icon: Network }] as const).map(({ value, label, icon: Icon }) => <button key={value} aria-label={`${label}模式`} aria-pressed={deviceView === value} onClick={() => { setDeviceView(value); setEditingId(null); setError(''); }} className={`h-7 px-2.5 rounded-md flex items-center gap-1.5 text-[11px] ${deviceView === value ? 'bg-white text-[#ee4d2d] shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}><Icon size={13} />{label}</button>)}
+            </div>
+            <span className="text-[10px] text-slate-400">{filteredDevices.length} 台设备</span>
+          </div>
+          <div className="relative"><Search size={13} className="absolute left-2.5 top-2.5 text-slate-400" />
+            <input value={query} onChange={event => setQuery(event.target.value)} placeholder="搜索真实设备、地址或关联设备" className="w-full h-8 rounded-lg border border-slate-200 bg-white pl-8 pr-3 text-[11px] outline-none focus:border-[#ee4d2d]" />
+          </div>
+          <div className="mt-2 min-h-4 text-[10px] text-slate-500" role="status">{syncQueue ? `正在同步南向设备 ${devices.length} / ${syncQueue.length}${syncQueue[devices.length] ? ` · 下一台：${syncQueue[devices.length].name}` : ''}` : checkedIds.length > 0 ? `已勾选 ${checkedIds.length} 台设备，可点击「生成仿真」加入左侧画布` : notice || `终端 ${agentConfig.ip}:${agentConfig.port} · 勾选设备可批量生成仿真`}</div>
+          {syncQueue && <div role="progressbar" aria-label="南向设备同步进度" aria-valuemin={0} aria-valuemax={syncQueue.length} aria-valuenow={devices.length} className="mt-2 h-1.5 rounded-full bg-red-50 overflow-hidden"><div className="h-full bg-[#ee4d2d] transition-all duration-300" style={{ width: `${syncQueue.length ? devices.length / syncQueue.length * 100 : 100}%` }} /></div>}
+        </div>
+        <div className="flex-1 min-h-0 overflow-auto custom-scrollbar">
+          {deviceView !== 'list' && <label className="flex items-center gap-2 px-4 py-3 text-[11px] text-slate-500"><input ref={selectAllRef} type="checkbox" aria-label="全选当前列表设备" checked={allChecked} onChange={event => setCheckedIds(previous => event.target.checked ? [...new Set([...previous, ...displayedDevices.map(device => device.id)])] : previous.filter(id => !displayedDevices.some(device => device.id === id)))} className="accent-[#ee4d2d]" />全选当前结果<span className="ml-auto">已选 {checkedIds.length} 台</span></label>}
+          {deviceView === 'cards' && <div aria-label="南向设备卡片" className="southbound-card-area mx-3 mb-3"><div className="southbound-card-grid">{filteredDevices.map(renderDeviceCard)}</div></div>}
+          {deviceView === 'topology' && filteredDevices.length > 0 && <div aria-label="南向设备拓扑" className="flex min-w-[380px] items-start p-3 pt-0 gap-3">
+            <nav aria-label="协议连接树" className="w-40 shrink-0 rounded-xl border border-slate-200 bg-slate-50/50 p-3 text-[11px]">
+              <div className="font-semibold flex items-center gap-2 mb-3"><Server size={14} className="text-[#ee4d2d] shrink-0" /><span className="truncate" title={agentConfig.agent}>{agentConfig.agent}</span></div>
+              <p className="text-[10px] text-slate-400 mb-2">勾选目录查看设备</p>
+              {portGroups.map(group => <div key={group.serialPort} className="mb-2">
+                <label className={`flex items-center gap-2 cursor-pointer rounded-md py-2 px-1 ${selectedTopologyGroups.includes(group.serialPort) ? 'bg-red-50 text-[#bd4b30]' : 'text-slate-600'}`}>
+                  <input type="checkbox" aria-label={`显示${group.serialPort}设备`} checked={selectedTopologyGroups.includes(group.serialPort)}
+                    onChange={event => setSelectedTopologyGroups(previous => event.target.checked ? [...previous, group.serialPort] : previous.filter(port => port !== group.serialPort))}
+                    className="accent-[#ee4d2d] shrink-0" />
+                  <span className="font-medium">{group.serialPort}</span>
+                </label>
+                <ul className="ml-2 border-l border-red-200 pl-3 text-[10px] text-slate-500">
+                  {group.protocols.map(bus => <li key={bus.protocol} className="py-1.5">{bus.protocol}{bus.protocol === 'RS485' ? ' 总线' : bus.protocol === 'Zigbee' ? ' 网络' : ''} <span className="text-slate-400">({bus.devices.length})</span></li>)}
+                </ul>
+              </div>)}
+            </nav>
+            <div className="southbound-card-area flex-1 min-w-0" aria-label="目录设备列表">
+              <div className="text-[11px] text-slate-500 mb-3">{selectedTopologyGroups.length ? `已选 ${selectedTopologyGroups.length} 个目录 · ${displayedDevices.length} 台设备` : '请选择左侧目录'}</div>
+              <div className="southbound-card-grid">{displayedDevices.map(renderDeviceCard)}</div>
+              {displayedDevices.length === 0 && <div className="rounded-xl border border-dashed border-slate-200 px-4 py-10 text-center text-xs text-slate-400">{selectedTopologyGroups.length ? '所选目录下没有匹配设备' : '勾选左侧一级目录，查看该目录下的所有设备'}</div>}
+            </div>
+          </div>}
+          {deviceView === 'list' && <table className="w-full min-w-[760px] text-[11px] text-left border-collapse">
+            <thead className="sticky top-0 z-10 bg-[#fff8f6] text-slate-500 text-[10px]"><tr>
+              <th className="pl-3 py-3 border-b border-red-100"><input ref={selectAllRef} type="checkbox" aria-label="全选当前列表设备" checked={allChecked} onChange={event => setCheckedIds(previous => event.target.checked ? [...new Set([...previous, ...displayedDevices.map(device => device.id)])] : previous.filter(id => !displayedDevices.some(device => device.id === id)))} className="accent-[#ee4d2d] cursor-pointer" /></th>
+              {['序号', '设备名称', '设备地址', '当前传感器数值', '关联仿真设备', '操作'].map(title => <th key={title} className={`px-3 py-3 whitespace-nowrap font-medium border-b border-red-100 ${title === '操作' ? 'sticky right-0 bg-[#fff8f6]' : ''}`}>{title}</th>)}
+            </tr></thead>
+            <tbody>{filteredDevices.map(device => {
+              const linked = linkedDevice(device);
+              return <tr key={device.id} data-real-device={device.id} className="border-b border-slate-100 hover:bg-[#fffbfa]">
+                <td className="pl-3 py-3"><input type="checkbox" aria-label={`勾选${device.name}`} checked={checkedIds.includes(device.id)} onChange={event => setCheckedIds(previous => event.target.checked ? [...previous, device.id] : previous.filter(id => id !== device.id))} className="accent-[#ee4d2d] cursor-pointer" /></td>
+                <td className="px-3 py-3 font-mono text-slate-400">{String(device.id).padStart(2, '0')}</td>
+                <td className="px-3 py-3"><div className="font-medium whitespace-nowrap">{device.name}</div><div className="mt-1 text-[9px] text-emerald-600">● 在线 · {device.protocol}</div></td>
+                <td className="px-3 py-3">{editingId === device.id ? <div>
+                  <div className="flex items-center gap-1">
+                    <input autoFocus aria-label="Modbus地址" type="number" min="1" max="247" value={draftAddress} onChange={event => setDraftAddress(event.target.value)}
+                      onKeyDown={event => { if (event.key === 'Enter') saveAddress(device.id); if (event.key === 'Escape') { setEditingId(null); setError(''); } }}
+                      className="w-12 h-7 rounded border border-red-300 px-1 outline-none" />
+                    <button onClick={() => saveAddress(device.id)} title="保存地址" className="text-emerald-600"><Check size={13} /></button>
+                    <button onClick={() => { setEditingId(null); setError(''); }} title="取消修改"><X size={13} /></button>
+                  </div>
+                  {error && <span role="alert" className="text-red-600 text-[10px]">{error}</span>}
+                </div> : <button title="修改Modbus地址" onClick={() => { setEditingId(device.id); setDraftAddress(String(device.address)); setError(''); }} className="twin-outline px-2 py-1 inline-flex items-center gap-1 font-mono">{device.address}<Pencil size={10} /></button>}</td>
+                <td className="px-3 py-3 whitespace-nowrap"><span className="text-slate-700">{device.value}</span>{syncTimes[device.id] && <div className="text-[9px] text-slate-400 mt-1">同步于 {syncTimes[device.id]}</div>}</td>
+                <td className="px-3 py-3">
+                  <div className="flex items-center gap-2 min-w-[166px]">
+                    <div className="w-9 h-9 shrink-0 bg-slate-50 rounded-md border border-slate-100 p-1 flex items-center justify-center">{linked ? <DeviceImage deviceId={linked.imageId} customImage={linked.image} alt={linked.name} className="w-full h-full object-contain" /> : <Box size={17} className="text-slate-300" />}</div>
+                    <select aria-label={`${device.name}关联仿真设备`} value={linked?.id || ''} title={linked?.name || '选择仿真设备'} onChange={event => {
+                      const id = event.target.value;
+                      setBindings(previous => ({ ...previous, [device.id]: id }));
+                      setNotice(`${device.name}${id ? ' 已绑定 ' + canvasDevices.find(candidate => candidate.id === id)?.name : ' 已解除绑定'}`);
+                    }} className="w-36 bg-white border border-slate-200 rounded-md px-1.5 py-1.5 text-[10px] outline-none focus:border-[#ee4d2d]">
+                      <option value="">未关联 · 选择设备</option>
+                      {canvasDevices.map(candidate => <option key={candidate.id} value={candidate.id}>{candidate.name}</option>)}
+                    </select>
+                  </div>
+                </td>
+                <td className="sticky right-0 bg-white px-3 py-3 border-l border-slate-100"><div className="flex items-center gap-1.5">
+                  <button onClick={() => synchronize(device)} className="twin-outline h-7 px-2 flex items-center gap-1 whitespace-nowrap"><RefreshCw size={11} />同步</button>
+                  <button disabled={!linked} onClick={() => linked && onSelect(linked.id)} className="twin-outline h-7 px-2 flex items-center gap-1 whitespace-nowrap disabled:opacity-35 disabled:cursor-not-allowed" title={linked ? '选中并定位关联仿真设备' : '请先绑定仿真设备'}><MousePointer2 size={11} />选中</button>
+                </div></td>
+              </tr>;
+            })}</tbody>
+          </table>}
+          {filteredDevices.length === 0 && <div className="p-10 text-center text-xs text-slate-400">{isSyncing ? '正在读取南向设备，请稍候…' : '未找到匹配设备'}</div>}
+        </div>
+      </> : <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
+        <WifiOff size={28} className="text-slate-300 mb-4" /><div className="text-sm font-medium">硬件智能体终端未连接</div>
+        <p className="text-xs text-slate-500 leading-6 mt-2">连接终端后查看南向设备及协议拓扑。</p>
+        <button onClick={onConfigure} className="mt-5 h-9 px-4 rounded-lg bg-[#ee4d2d] text-white text-xs">配置并连接</button>
+      </div>}
+      {generationQueue && <div className="shrink-0 border-t border-red-200 bg-[#fff8f6] p-4" aria-label="仿真生成进度面板">
+        <div role="region" aria-labelledby="generation-title">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-11 h-11 rounded-xl bg-red-50 text-[#ee4d2d] flex items-center justify-center">{generatedCount === generationQueue.length ? <Check size={24} /> : <LoaderCircle size={24} className="animate-spin" />}</div>
+            <div><h2 id="generation-title" className="font-semibold text-sm">{generatedCount === generationQueue.length ? '仿真设备生成完成' : !connected ? '连接已断开，生成已暂停' : '正在逐个生成仿真设备'}</h2><p className="text-xs text-slate-500 mt-1">左侧实时展示设备及示例连线，自动定位当前设备</p></div>
+          </div>
+          <div className="flex justify-between text-xs mb-2" aria-live="polite"><span>{generatedCount} / {generationQueue.length} 台设备</span><span className="text-[#ee4d2d] font-medium">{Math.round(generatedCount / generationQueue.length * 100)}%</span></div>
+          <div role="progressbar" aria-label="仿真生成进度" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(generatedCount / generationQueue.length * 100)} className="h-2.5 rounded-full bg-red-50 overflow-hidden"><div className="h-full rounded-full bg-[#ee4d2d] transition-all duration-300" style={{ width: `${generatedCount / generationQueue.length * 100}%` }} /></div>
+          <p className="mt-3 text-xs text-slate-500 min-h-5" role="status">{generatedCount > 0 && `已生成：${generationQueue[generatedCount - 1].name}，已完成关联。`}{generatedCount === generationQueue.length ? '全部完成。' : connected ? `下一台：${generationQueue[generatedCount].name}` : '重新连接终端后继续。'}</p>
+          <div className="mt-3 flex justify-end"><button disabled={generatedCount !== generationQueue.length} onClick={() => { setNotice(`已生成并关联 ${generationQueue.length} 台仿真设备`); setGenerationQueue(null); setCheckedIds([]); onSelect(lastGeneratedId); }} className="h-8 px-4 rounded-lg bg-[#ee4d2d] text-white text-xs disabled:opacity-40 disabled:cursor-not-allowed">{generatedCount === generationQueue.length ? '完成' : '生成中…'}</button></div>
+        </div>
+      </div>}
+    </section>
+  );
+}
+
+function HardwareAgentConfigModal({ config, connected, onClose, onConnect, onDisconnect }: {
+  config: HardwareAgentConfig;
+  connected: boolean;
+  onClose: () => void;
+  onConnect: (config: HardwareAgentConfig) => void;
+  onDisconnect: () => void;
+}) {
+  const [form, setForm] = useState(config);
+  const [error, setError] = useState('');
+
+  useEffect(() => setForm(config), [config]);
+
+  const submit = () => {
+    const octets = form.ip.split('.').map(Number);
+    const validIp = octets.length === 4 && octets.every(octet => Number.isInteger(octet) && octet >= 0 && octet <= 255);
+    const port = Number(form.port);
+    if (!validIp) return setError('请输入有效的 IPv4 地址');
+    if (!Number.isInteger(port) || port < 1 || port > 65535) return setError('端口范围应为 1–65535');
+    if (!form.agent) return setError('请选择需要绑定的硬件智能体');
+    setError('');
+    onConnect(form);
+  };
+
+  return (
+    <div className="fixed inset-0 z-[110] bg-black/70 backdrop-blur-sm flex items-center justify-center p-6">
+      <div role="dialog" aria-modal="true" aria-labelledby="agent-config-title" className="w-full max-w-[520px] rounded-2xl border border-red-100 bg-white text-slate-700 shadow-2xl overflow-hidden">
+        <div className="h-16 px-5 border-b border-slate-800 flex items-center justify-between bg-[#111a23]">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-red-50 text-[#ee4d2d] flex items-center justify-center"><Cpu size={18} /></div>
+            <div>
+              <h2 id="agent-config-title" className="text-sm font-semibold">硬件智能体终端配置</h2>
+              <div className="text-[10px] text-slate-500 mt-0.5">配置终端网络并绑定网关类硬件智能体</div>
+            </div>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 flex items-center justify-center"><X size={16} /></button>
+        </div>
+
+        <div className="p-5 space-y-5">
+          <div className={`rounded-xl border px-4 py-3 flex items-center justify-between ${connected ? 'border-emerald-500/25 bg-emerald-500/10' : 'border-rose-500/25 bg-rose-500/10'}`}>
+            <div className="flex items-center gap-2">
+              {connected ? <Wifi size={15} className="text-emerald-400" /> : <WifiOff size={15} className="text-rose-400" />}
+              <div>
+                <div className={`text-xs font-medium ${connected ? 'text-emerald-700' : 'text-rose-600'}`}>{connected ? '终端已连接' : '终端未连接'}</div>
+                <div className="text-[10px] text-slate-500 mt-0.5">{connected ? `${config.ip}:${config.port} · ${config.agent}` : '启动实验前必须完成连接'}</div>
+              </div>
+            </div>
+            {connected && <button onClick={onDisconnect} className="h-7 px-2.5 rounded-md border border-rose-500/30 text-rose-600 hover:bg-rose-500/10 text-[10px]">断开连接</button>}
+          </div>
+
+          <div className="grid grid-cols-[1fr_130px] gap-3">
+            <label className="space-y-1.5">
+              <span className="text-[11px] text-slate-500">终端 IP 地址</span>
+              <input value={form.ip} onChange={event => setForm(previous => ({ ...previous, ip: event.target.value }))} placeholder="192.168.1.188" className="w-full h-10 rounded-lg border border-slate-200 bg-white px-3 text-xs font-mono outline-none focus:border-[#ee4d2d]" />
+            </label>
+            <label className="space-y-1.5">
+              <span className="text-[11px] text-slate-500">服务端口</span>
+              <input type="number" min="1" max="65535" value={form.port} onChange={event => setForm(previous => ({ ...previous, port: event.target.value }))} placeholder="9000" className="w-full h-10 rounded-lg border border-slate-200 bg-white px-3 text-xs font-mono outline-none focus:border-[#ee4d2d]" />
+            </label>
+          </div>
+
+          <label className="space-y-1.5 block">
+            <span className="text-[11px] text-slate-500">绑定硬件智能体</span>
+            <select value={form.agent} onChange={event => setForm(previous => ({ ...previous, agent: event.target.value }))} className="w-full h-10 rounded-lg border border-slate-200 bg-white px-3 text-xs outline-none focus:border-[#ee4d2d]">
+              <option>中心网关智能体</option>
+              <option>边缘计算网关智能体</option>
+              <option>4G数传终端智能体</option>
+              <option>RS485采集智能体</option>
+            </select>
+          </label>
+
+          <div className="rounded-xl border border-red-100 bg-red-50 p-3 flex items-start gap-2.5">
+            <Server size={14} className="text-[#ee4d2d] mt-0.5 shrink-0" />
+            <p className="text-[10px] leading-5 text-slate-500">绑定中心网关等硬件智能体后，平台会读取其南向设备、接入协议、设备地址、实时数值和在线状态。</p>
+          </div>
+          {error && <div className="text-xs text-rose-400">{error}</div>}
+        </div>
+
+        <div className="h-16 px-5 border-t border-red-100 bg-[#fff8f6] flex items-center justify-end gap-2">
+          <button onClick={onClose} className="h-9 px-4 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs">取消</button>
+          <button aria-label="保存并连接硬件智能体" onClick={submit} className="h-9 px-4 rounded-lg bg-[#ee4d2d] hover:bg-[#d93f22] text-white text-xs font-medium flex items-center gap-2"><PlugZap size={14} />保存并连接</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 function DraggableContainer({ children, className, style, id, onDrag }: any) {
   const { position, handleMouseDown } = useDraggable({ x: 0, y: 0 }, onDrag);
+  const editor = useConnections();
+  const selection = useContext(DeviceSelectionContext);
   
   return (
     <div 
-      className={className} 
+      className={`${className} ${selection.selectedIds.includes(id) ? 'device-selected' : ''}`}
+      data-device-id={id}
+      aria-selected={selection.selectedIds.includes(id)}
       style={{
         ...style,
         transform: `translate(${position.x}px, ${position.y}px)`
       }}
-      onMouseDown={handleMouseDown}
+      onMouseDown={event => {
+        if (event.button !== 0 || editor.mode === 'connect' || editor.pending || (event.target as HTMLElement).closest('button')) return;
+        event.preventDefault();
+        selection.select(id, event.ctrlKey || event.metaKey || event.shiftKey);
+        editor.setSelected(null);
+        (event.currentTarget.closest('.design-canvas') as HTMLElement)?.focus({ preventScroll: true });
+        if (event.ctrlKey || event.metaKey || event.shiftKey) return;
+        handleMouseDown(event);
+      }}
     >
       {children}
     </div>
   );
 }
 
-function DraggableNode({ id, title, subtitle, icon, style, ports, headerClass="bg-gray-100", onDrag, onDelete, attributes }: any) {
+function DraggableNode({ id, title, subtitle, icon, style, ports, headerClass="bg-gray-100", onDrag, onDelete, attributes, showLabel = false, appearing = false }: any) {
   const [showAttrTooltip, setShowAttrTooltip] = useState(false);
+  const editor = useConnections();
+  const selection = useContext(DeviceSelectionContext);
 
   // 若没有显式传入 attributes，则根据 title / subtitle 自动推导是否有属性
   const computedAttributes = useMemo(() => {
-    if (attributes && Array.isArray(attributes) && attributes.length > 0) return attributes;
+    if (Array.isArray(attributes)) return attributes;
     const t = (title || '').toLowerCase();
     const s = (subtitle || '').toLowerCase();
     if (t.includes('温湿度') || s.includes('humiture') || s.includes('ha_61')) {
@@ -1033,14 +1665,16 @@ function DraggableNode({ id, title, subtitle, icon, style, ports, headerClass="b
 
   const hasAttrs = computedAttributes.length > 0;
 
+  if (selection.deletedIds.includes(id)) return null;
+
   return (
-    <DraggableContainer className="absolute border border-gray-300 shadow-md bg-white rounded flex flex-col items-center cursor-move hover:shadow-xl transition-shadow z-10 group"
+    <DraggableContainer className="design-node absolute min-w-[150px] bg-transparent flex flex-col items-center pb-5 cursor-move z-10 group"
       style={style}
       onDrag={onDrag}
       id={id}
     >
-      <div className={`w-full px-2 py-1.5 text-[11px] font-medium text-center border-b border-gray-200 rounded-t relative flex items-center justify-between ${headerClass}`}>
-        <span className="truncate flex-1 text-center font-bold px-1 text-gray-900" title={title}>{title}</span>
+      <div className={`absolute bottom-full mb-2 left-1/2 -translate-x-1/2 text-[11px] font-medium text-[#526b7c] transition-opacity ${showLabel ? 'w-48 text-center whitespace-normal' : 'whitespace-nowrap opacity-0 group-hover:opacity-100'}`}>
+        <span title={title}>{title}</span>
         
         {/* 查看属性小图标 */}
         {hasAttrs && (
@@ -1090,7 +1724,7 @@ function DraggableNode({ id, title, subtitle, icon, style, ports, headerClass="b
 
         {onDelete && (
           <button 
-            onClick={(e) => { e.stopPropagation(); onDelete(); }}
+            onClick={(e) => { e.stopPropagation(); editor.removeNode(id); onDelete(); }}
             className="absolute -right-1 -top-1 w-4 h-4 rounded-full bg-red-100 text-red-600 hover:bg-red-200 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer shadow-xs"
             title="删除"
           >
@@ -1098,33 +1732,19 @@ function DraggableNode({ id, title, subtitle, icon, style, ports, headerClass="b
           </button>
         )}
       </div>
-      <div className="p-3 flex flex-col items-center">
+      <div className={`p-2 flex flex-col items-center drop-shadow-[0_8px_8px_rgba(40,70,85,0.16)] ${appearing ? 'generated-device-appear' : ''}`}>
         {icon}
-        {subtitle && <div className="text-[9px] text-gray-500 mt-2 text-center leading-tight whitespace-pre-line bg-gray-50 px-2 py-0.5 rounded max-w-[130px] truncate border border-gray-100 font-mono">{subtitle}</div>}
       </div>
+      {showLabel && <div className="w-44 text-center text-[9px] text-slate-500 leading-4">{subtitle}</div>}
       
       {/* Ports */}
       {ports && ports.length > 0 && (
-        <div className="flex justify-around w-full pb-1.5 px-2 gap-1.5 border-t border-gray-100 pt-1.5 bg-gray-50 rounded-b">
-          {ports.map((p: string, i: number) => {
-             const color = p.split('-')[1];
-             return <Port key={i} color={color} />
+        <div className="absolute -bottom-5 inset-x-0 flex justify-center px-1 gap-0 z-10">
+          {ports.map((p: string) => {
+             return <ConnectionPort key={p} node={id} port={p} />
           })}
         </div>
       )}
     </DraggableContainer>
-  );
-}
-
-function Port({ color }: { color: string; key?: any }) {
-  const bgMap: Record<string, string> = {
-    red: 'bg-red-500',
-    black: 'bg-gray-800',
-    blue: 'bg-blue-500',
-    green: 'bg-green-500',
-    yellow: 'bg-yellow-400'
-  };
-  return (
-    <div className={`w-2.5 h-2.5 rounded-full ${bgMap[color] || 'bg-gray-300'} border-[1.5px] border-white shadow-xs ring-1 ring-gray-300 cursor-crosshair hover:scale-125 transition-transform hover:ring-blue-400`}></div>
   );
 }
